@@ -10,6 +10,14 @@ AI Dashboard is a full-stack application that allows users to generate charts fr
 - **Clear Charts**: Includes a "Clear Charts" button to remove all displayed charts.
 - **Responsive Design**: Built with Tailwind CSS for a responsive and modern UI.
 
+
+![image](https://github.com/user-attachments/assets/b03d49ff-45b7-4a56-937c-da9869023b0f)
+
+![image](https://github.com/user-attachments/assets/57fa5e3e-c910-48ad-9d8a-196c2fbcf4a1)
+
+![image](https://github.com/user-attachments/assets/79727330-eb37-421a-8a33-cf89530c5a99)
+
+
 ## Tech Stack
 
 - **Frontend**: Next.js 14, React, Chart.js (`react-chartjs-2`), Tailwind CSS
@@ -378,12 +386,4 @@ This project is licensed under the MIT License.
 ## Contact
 
 For issues or contributions, please open an issue on the repository or contact the maintainers.# AI-Dashboard
-
-
-![image](https://github.com/user-attachments/assets/b03d49ff-45b7-4a56-937c-da9869023b0f)
-
-![image](https://github.com/user-attachments/assets/57fa5e3e-c910-48ad-9d8a-196c2fbcf4a1)
-
-![image](https://github.com/user-attachments/assets/79727330-eb37-421a-8a33-cf89530c5a99)
-
 
