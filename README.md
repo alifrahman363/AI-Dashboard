@@ -384,5 +384,6 @@ For issues or contributions, please open an issue on the repository or contact t
 
 ![image](https://github.com/user-attachments/assets/57fa5e3e-c910-48ad-9d8a-196c2fbcf4a1)
 
-![image](https://github.com/user-attachments/assets/eaf07065-6c03-4ef6-8dfc-313589576125)
+![image](https://github.com/user-attachments/assets/79727330-eb37-421a-8a33-cf89530c5a99)
+
 
