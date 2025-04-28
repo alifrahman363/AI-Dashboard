@@ -141,7 +141,7 @@ export default function Home() {
   return (
     <div className={`${inter.className} min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center py-6 px-4`}>
       {/* Header */}
-      <h1 className="mb-10 text-4xl font-extrabold text-slate-700 tracking-tight">
+      <h1 className="mt-10 mb-10 text-4xl font-extrabold text-slate-700 tracking-tight">
         AI Dashboard
       </h1>
 
@@ -183,7 +183,7 @@ export default function Home() {
       {/* Chart Display */}
       {chartDataList.length > 0 && (
         <div className="w-full max-w-[90vw] overflow-x-auto snap-x snap-mandatory">
-          <div className="flex flex-row gap-6 pb-4 scroll-smooth">
+          <div className="flex flex-row gap-6 pb-4 scroll-smooth justify-center items-center snap-x snap-mandatory">
             {chartDataList.map((chartData, index) => {
               const data = generateChartData(chartData);
               if (!data) return null;
