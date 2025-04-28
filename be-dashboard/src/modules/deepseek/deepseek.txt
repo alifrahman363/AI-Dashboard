@@ -1,0 +1,100 @@
+
+## downlaod ollama
+# curl -fsSL https://ollama.com/install.sh | sh
+
+
+## pull the model
+# ollama pull deepseek-r1:1.5b
+
+
+##ollama list to see the models available
+# ollama list
+
+
+## start the model
+# ollama run deepseek-r1:1.5b
+
+
+##start the model
+# ollama serve
+
+
+##test model
+# curl http://localhost:11434/api/tags
+
+
+## install python dependencies
+# pip install flask
+# pip install transformers
+# pip install transformers torch
+
+
+## create a flash api to communicate between the model and the backend
+# cd ~
+# mkdir deepseek-api
+# cd deepseek-api
+# nano app.py
+
+
+
+# # paste it in app.py
+# from flask import Flask, request, jsonify
+# import subprocess  # For CLI-based DeepSeek R1
+
+# app = Flask(__name__)
+
+# def query_deepseek(prompt):
+#     try:
+#         # Adjust this command based on how you run DeepSeek R1
+#         # Example: If it’s a CLI tool named 'deepseek-r1'
+#         result = subprocess.run(
+#             ['deepseek-r1', '--prompt', prompt],  # Replace with actual CLI command
+#             capture_output=True,
+#             text=True
+#         )
+#         return result.stdout.strip()
+
+#         # If DeepSeek R1 is a Python library (uncomment and adjust):
+#         # from transformers import pipeline
+#         # model = pipeline('text-generation', model='/path/to/deepseek-r1')
+#         # response = model(prompt, max_length=200, num_return_sequences=1)
+#         # return response[0]['generated_text']
+
+#     except Exception as e:
+#         return str(e)
+
+# @app.route('/api/prompt', methods=['POST'])
+# def handle_prompt():
+#     data = request.get_json()
+#     prompt = data.get('prompt')
+#     if not prompt:
+#         return jsonify({'error': 'Prompt is required'}), 400
+#     try:
+#         response = query_deepseek(prompt)
+#         return jsonify({'response': response})
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
+
+# if __name__ == '__main__':
+#     app.run(host='0.0.0.0', port=8000)
+
+
+
+# # Verify the file 
+# ls 
+
+
+##install python dependencies
+# python3 -m venv venv
+# source venv/bin/activate
+# python3 app.py
+
+
+# #run the flask API
+# python3 app.py
+
+
+# test flask API
+  curl -X POST http://localhost:8000/api/prompt \
+    -H "Content-Type: application/json" \
+    -d '{"prompt": "Test query"}'
