@@ -3,7 +3,39 @@
 # File to store process IDs
 PID_FILE="pids.txt"
 
-# Function to stop all processes listed in PID_FILE
+# Function to kill a process on a specific port and verify it's freed
+kill_port() {
+    local port=$1
+    local service_name=$2
+    local retries=3
+    local attempt=1
+
+    while [ $attempt -le $retries ]; do
+        echo "Attempt $attempt: Killing processes using port $port ($service_name)..."
+        lsof -ti :$port | xargs kill -9 2>/dev/null
+        sleep 1  # Brief delay to allow the system to release the port
+        if ! lsof -ti :$port > /dev/null; then
+            echo "Port $port is now free."
+            return 0
+        fi
+        echo "Port $port is still in use, retrying..."
+        attempt=$((attempt + 1))
+    done
+
+    echo "Error: Failed to free port $port after $retries attempts."
+    return 1
+}
+
+# Function to kill all required ports
+kill_all_ports() {
+    echo "Killing all required ports..."
+    kill_port 11434 "Ollama"
+    kill_port 8000 "Flask API"
+    kill_port 3000 "NestJS Backend"
+    kill_port 3002 "Next.js Frontend"
+}
+
+# Function to stop all processes listed in PID_FILE and kill ports
 stop_processes() {
     if [ -f "$PID_FILE" ]; then
         echo "Stopping all processes listed in $PID_FILE..."
@@ -17,7 +49,13 @@ stop_processes() {
     else
         echo "No PID file found. No processes to stop."
     fi
+
+    # Kill all required ports after stopping processes
+    kill_all_ports
 }
+
+# Trap SIGINT (Ctrl+C) to ensure cleanup
+trap 'echo "Script interrupted. Cleaning up..."; stop_processes; exit 1' SIGINT
 
 # Check if the script is called with 'stop' argument
 if [ "$1" = "stop" ]; then
@@ -28,13 +66,9 @@ fi
 # Ensure no previous processes are running (from PID_FILE)
 stop_processes
 
-# Kill processes using the required ports
-echo "Killing processes using required ports..."
-lsof -ti :11434 | xargs kill -9 2>/dev/null  # Ollama
-lsof -ti :8000 | xargs kill -9 2>/dev/null   # Flask API
-lsof -ti :3000 | xargs kill -9 2>/dev/null   # NestJS Backend
-lsof -ti :3001 | xargs kill -9 2>/dev/null   # Next.js Frontend
-sleep 1
+# Kill processes using the required ports with retry mechanism
+echo "Killing processes using required ports before starting services..."
+kill_all_ports
 
 # Start Ollama Server
 echo "Starting Ollama server..."
@@ -73,4 +107,7 @@ cd ..
 
 echo "All services started. PIDs saved in $PID_FILE"
 echo "To stop all services, run: ./run.sh stop"
-echo "Access the application at: http://localhost:3001"
+echo "Access the application at: http://localhost:3002"
+
+# Optional: Comment showing how to kill a port manually
+# fuser -k 3002/tcp
