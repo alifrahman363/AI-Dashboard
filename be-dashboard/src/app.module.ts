@@ -4,12 +4,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 // import { ElasticsearchModule } from '@nestjs/elasticsearch';
+import { HttpModule } from '@nestjs/axios';
+import { DeepseekModule } from './modules/deepseek/deepseek.module';
+import { OrderModule } from './modules/order/order.module';
+import { PinnedChartsModule } from './modules/pinnedCharts/pinnedChart.module';
 import { ProductModule } from './modules/products/products.module';
 import { UserModule } from './modules/user/user.module';
-import { OrderModule } from './modules/order/order.module';
-import { DashboardModule } from './modules/dashboard/dashboard.module';
-import { DeepseekModule } from './modules/deepseek/deepseek.module';
-import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -32,7 +32,7 @@ import { HttpModule } from '@nestjs/axios';
     ProductModule,
     UserModule,
     OrderModule,
-    DashboardModule,
+    PinnedChartsModule,
     DeepseekModule,
     HttpModule
   ],

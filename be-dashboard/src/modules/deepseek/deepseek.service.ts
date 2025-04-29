@@ -196,6 +196,8 @@ export class DeepseekService {
       }
 
       return {
+        prompt: userRequest,
+        query,
         chartType,
         labels,
         data,
