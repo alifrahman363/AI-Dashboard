@@ -1,5 +1,38 @@
 import type { ChartOptions, ChartData as ChartJsData } from 'chart.js';
+import {
+    Chart,
+    ArcElement,
+    BarElement,
+    LineElement,
+    PointElement,
+    PieController,
+    BarController,
+    LineController,
+    DoughnutController,
+    CategoryScale,
+    LinearScale,
+    Title,
+    Tooltip,
+    Legend,
+} from 'chart.js';
 import { ChartData } from '../types';
+
+// Register Chart.js components
+Chart.register(
+    ArcElement,
+    BarElement,
+    LineElement,
+    PointElement,
+    PieController,
+    BarController,
+    LineController,
+    DoughnutController,
+    CategoryScale,
+    LinearScale,
+    Title,
+    Tooltip,
+    Legend
+);
 
 export const colorPalette = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#EF4444'];
 

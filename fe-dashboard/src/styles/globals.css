@@ -24,4 +24,26 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Center text for messages */
+  .text-center {
+    text-align: center;
+  }
+
+  /* Slide-in animation for messages */
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out forwards;
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
 }

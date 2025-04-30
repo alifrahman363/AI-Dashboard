@@ -6,7 +6,7 @@ import { Inter } from 'next/font/google';
 import ChartCard from '../components/ChartCard';
 import ChartForm from '../components/ChartForm';
 import Message from '../components/Message';
-import PinnedChartCard from '../components/PinnedChartCard';
+import PinnedChartCard from '../components/PinnedChartCard'; // Fixed import
 import Tabs from '../components/Tabs';
 import { ChartData, PinnedChart } from '../types';
 
@@ -149,13 +149,21 @@ export default function Home() {
   };
 
   return (
-    <div className={`${inter.className} min-h-screen bg-gradient-to-b from-[#E0F2FE] to-[#F8FAFC] flex flex-col items-center py-6 px-4`}>
+    <div className={`${inter.className} min-h-screen bg-gradient-to-b from-[#E0F2FE] to-[#F8FAFC] flex flex-col items-center py-6 px-4 relative`}>
+      <div className="fixed top-4 right-4 flex flex-col gap-2 z-50">
+        {error && <Message message={error} type="error" onClose={() => setError(null)} />}
+        {pinMessage && (
+          <Message
+            message={pinMessage}
+            type={pinMessage.includes('successfully') ? 'success' : 'error'}
+            onClose={() => setPinMessage(null)}
+          />
+        )}
+      </div>
+
       <h1 className="mt-10 mb-10 text-4xl font-extrabold text-[#1E3A8A] tracking-tight">AI Dashboard</h1>
 
       <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
-
-      {error && <Message message={error} type="error" />}
-      {pinMessage && <Message message={pinMessage} type={pinMessage.includes('successfully') ? 'success' : 'error'} />}
 
       {activeTab === 'generate' && (
         <>

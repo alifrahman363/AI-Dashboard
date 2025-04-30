@@ -13,6 +13,4 @@ export interface PinnedChart {
     prompt: string;
     query: string;
     isPinned: boolean;
-    createdAt: string;
-    updatedAt: string;
 }

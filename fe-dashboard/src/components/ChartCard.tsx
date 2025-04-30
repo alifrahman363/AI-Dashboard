@@ -2,14 +2,22 @@
 
 import dynamic from 'next/dynamic';
 import type { ChartData as ChartJsData } from 'chart.js';
+import type { ChartProps } from 'react-chartjs-2';
 import { FiBookmark } from 'react-icons/fi';
 import { pieOptions, barOptions, lineOptions, doughnutOptions, generateChartData } from '../utils/chartUtils';
 import { ChartData } from '../types';
 
-const Pie = dynamic(() => import('react-chartjs-2').then((mod) => mod.Pie), { ssr: false });
-const Bar = dynamic(() => import('react-chartjs-2').then((mod) => mod.Bar), { ssr: false });
-const Line = dynamic(() => import('react-chartjs-2').then((mod) => mod.Line), { ssr: false });
-const Doughnut = dynamic(() => import('react-chartjs-2').then((mod) => mod.Doughnut), { ssr: false });
+// Define types for each chart component
+type PieComponent = React.ComponentType<ChartProps<'pie'>>;
+type BarComponent = React.ComponentType<ChartProps<'bar'>>;
+type LineComponent = React.ComponentType<ChartProps<'line'>>;
+type DoughnutComponent = React.ComponentType<ChartProps<'doughnut'>>;
+
+// Dynamically import each chart component with proper types
+const Pie = dynamic(() => import('react-chartjs-2').then((mod) => mod.Pie as PieComponent), { ssr: false });
+const Bar = dynamic(() => import('react-chartjs-2').then((mod) => mod.Bar as BarComponent), { ssr: false });
+const Line = dynamic(() => import('react-chartjs-2').then((mod) => mod.Line as LineComponent), { ssr: false });
+const Doughnut = dynamic(() => import('react-chartjs-2').then((mod) => mod.Doughnut as DoughnutComponent), { ssr: false });
 
 interface ChartCardProps {
     chartData: ChartData;
@@ -51,10 +59,34 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
                 )}
             </div>
             <div className="h-[350px]">
-                {chartData.chartType === 'pie' && <Pie data={data as ChartJsData<'pie', number[], string>} options={pieOptions} />}
-                {chartData.chartType === 'bar' && <Bar data={data as ChartJsData<'bar', number[], string>} options={barOptions} />}
-                {chartData.chartType === 'line' && <Line data={data as ChartJsData<'line', number[], string>} options={lineOptions} />}
-                {chartData.chartType === 'doughnut' && <Doughnut data={data as ChartJsData<'doughnut', number[], string>} options={doughnutOptions} />}
+                {chartData.chartType === 'pie' && (
+                    <Pie
+                        type="pie"
+                        data={data as ChartJsData<'pie', number[], string>}
+                        options={pieOptions}
+                    />
+                )}
+                {chartData.chartType === 'bar' && (
+                    <Bar
+                        type="bar"
+                        data={data as ChartJsData<'bar', number[], string>}
+                        options={barOptions}
+                    />
+                )}
+                {chartData.chartType === 'line' && (
+                    <Line
+                        type="line"
+                        data={data as ChartJsData<'line', number[], string>}
+                        options={lineOptions}
+                    />
+                )}
+                {chartData.chartType === 'doughnut' && (
+                    <Doughnut
+                        type="doughnut"
+                        data={data as ChartJsData<'doughnut', number[], string>}
+                        options={doughnutOptions}
+                    />
+                )}
             </div>
         </div>
     );

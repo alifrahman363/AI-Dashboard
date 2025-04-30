@@ -1,11 +1,11 @@
 'use client';
 
-import { PinnedChart } from '../types';
+import { PinnedChart, ChartData } from '../types';
 
 interface PinnedChartCardProps {
     chart: PinnedChart;
-    onView: (pinnedChartId: number) => void;
-    onUnpin: (pinnedChartId: number, chart: PinnedChart) => void;
+    onView: (pinnedChartId: number) => Promise<void>;
+    onUnpin: (pinnedChartId: number, chart: ChartData | PinnedChart) => Promise<void>;
 }
 
 export default function PinnedChartCard({ chart, onView, onUnpin }: PinnedChartCardProps) {
