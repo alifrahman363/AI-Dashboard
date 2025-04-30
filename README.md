@@ -10,8 +10,10 @@ AI Dashboard is a full-stack application that allows users to generate charts fr
 - **Clear Charts**: Includes a "Clear Charts" button to remove all displayed charts.
 - **Responsive Design**: Built with Tailwind CSS for a responsive and modern UI.
 
+
 ![AI Dashboard 1](https://github.com/user-attachments/assets/ba32e719-bd3c-45a0-988d-f593d4fc894a)
 
+![AI Dashboard 2](https://github.com/user-attachments/assets/1cd9b6a4-adc1-4106-8b06-f86af8906fb9)
 
 
 ## Tech Stack
