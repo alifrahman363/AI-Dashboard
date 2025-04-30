@@ -148,7 +148,7 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <div className="w-full overflow-x-auto snap-x snap-mandatory flex gap-6 pb-4">
+            <div className="w-full snap-x snap-mandatory flex gap-6 pb-4">
               {pinnedCharts.map((chart, index) => (
                 <ChartCard
                   key={chart.pinnedChartId || index}

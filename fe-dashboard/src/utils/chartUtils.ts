@@ -34,29 +34,118 @@ Chart.register(
     Legend
 );
 
-export const colorPalette = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#EF4444'];
+// Define the project's lighter color palette
+export const colorPalette = [
+    '#E07A6A', // Lighter Muted Red (from #C24A3A)
+    '#4ABF95', // Lighter Muted Green (from #0A8F65)
+    '#3D4A87', // Lighter Dark Blue (from #1F2A44)
+    '#E8A095', // Lighter Muted Red (from #D07A6A)
+    '#7ED1B5', // Lighter Muted Green (from #4DB395)
+    '#6B7AB5', // Lighter Muted Blue (from #3D4A87)
+];
 
 export const baseOptions: ChartOptions<any> = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
         legend: {
-            position: 'top' as const,
+            position: 'bottom' as const,
             labels: {
                 font: { size: 12, family: 'var(--font-inter), sans-serif' },
-                color: '#4B5563',
+                color: '#3D4A87',
+            },
+        },
+        tooltip: {
+            backgroundColor: '#3D4A87', // Lighter dark blue
+            titleColor: '#FFFFFF',
+            bodyColor: '#FFFFFF',
+            borderColor: '#E07A6A', // Lighter muted red border
+            borderWidth: 1,
+        },
+    },
+};
+
+export const pieOptions: ChartOptions<'pie'> = {
+    ...baseOptions,
+    elements: {
+        arc: {
+            borderWidth: 1,
+            borderColor: '#3D4A87',
+            hoverBorderWidth: 2,
+            hoverBorderColor: '#1F2A44', // Slightly darker on hover
+            hoverOffset: 8,
+        },
+    },
+};
+
+export const doughnutOptions: ChartOptions<'doughnut'> = {
+    ...baseOptions,
+    elements: {
+        arc: {
+            borderWidth: 1,
+            borderColor: '#3D4A87', // Lighter dark blue border for doughnut segments
+        },
+    },
+};
+
+export const barOptions: ChartOptions<'bar'> = {
+    ...baseOptions,
+    plugins: {
+        legend: {
+            display: false, // No legend for single-dataset bar charts
+        },
+    },
+    scales: {
+        x: {
+            grid: {
+                display: false,
+            },
+            ticks: {
+                color: '#3D4A87', // Lighter dark blue for axis labels
+            },
+        },
+        y: {
+            grid: {
+                color: '#3D4A87', // Lighter dark blue for grid lines
+                borderDash: [5, 5], // Dashed grid lines
+            },
+            ticks: {
+                color: '#3D4A87', // Lighter dark blue for axis labels
             },
         },
     },
-    maintainAspectRatio: false,
 };
 
-export const pieOptions: ChartOptions<'pie'> = { ...baseOptions };
-export const barOptions: ChartOptions<'bar'> = { ...baseOptions };
-export const lineOptions: ChartOptions<'line'> = { ...baseOptions };
-export const doughnutOptions: ChartOptions<'doughnut'> = { ...baseOptions };
+export const lineOptions: ChartOptions<'line'> = {
+    ...baseOptions,
+    plugins: {
+        legend: {
+            display: false, // No legend for single-dataset line charts
+        },
+    },
+    scales: {
+        x: {
+            grid: {
+                display: false,
+            },
+            ticks: {
+                color: '#3D4A87', // Lighter dark blue for axis labels
+            },
+        },
+        y: {
+            grid: {
+                color: '#3D4A87', // Lighter dark blue for grid lines
+                borderDash: [5, 5], // Dashed grid lines
+            },
+            ticks: {
+                color: '#3D4A87', // Lighter dark blue for axis labels
+            },
+        },
+    },
+};
 
 export const generateChartData = (chartData: ChartData): ChartJsData<'pie' | 'bar' | 'line' | 'doughnut', number[], string> | null => {
-    if (!chartData) return null;
+    if (!chartData || !chartData.labels || !chartData.data) return null;
 
     if (chartData.chartType === 'pie') {
         return {
@@ -67,6 +156,7 @@ export const generateChartData = (chartData: ChartData): ChartJsData<'pie' | 'ba
                     data: chartData.data,
                     backgroundColor: chartData.labels.map((_, i) => colorPalette[i % colorPalette.length]),
                     borderWidth: 1,
+                    borderColor: '#3D4A87', // Lighter dark blue border
                 },
             ],
         };
@@ -80,6 +170,9 @@ export const generateChartData = (chartData: ChartData): ChartJsData<'pie' | 'ba
                     label: chartData.title,
                     data: chartData.data,
                     backgroundColor: chartData.labels.map((_, i) => colorPalette[i % colorPalette.length]),
+                    hoverBackgroundColor: chartData.labels.map((_, i) => colorPalette[i % colorPalette.length].replace(/([0-9A-F]{6})/i, '$1CC')), // Slightly darker on hover (80% opacity)
+                    borderWidth: 1,
+                    borderColor: '#3D4A87',
                     borderRadius: 10,
                 },
             ],
@@ -93,10 +186,13 @@ export const generateChartData = (chartData: ChartData): ChartJsData<'pie' | 'ba
                 {
                     label: chartData.title,
                     data: chartData.data,
-                    backgroundColor: '#3B82F666',
-                    borderColor: '#3B82F6',
+                    backgroundColor: '#4ABF9520', // Lighter muted green fill for the area under the line (25% opacity)
+                    borderColor: '#4ABF95', // Lighter muted green line
                     tension: 0.4,
                     fill: true,
+                    pointBackgroundColor: '#4ABF95', // Lighter muted green points
+                    pointBorderColor: '#3D4A87', // Lighter dark blue point borders
+                    pointBorderWidth: 2,
                 },
             ],
         };
@@ -111,6 +207,7 @@ export const generateChartData = (chartData: ChartData): ChartJsData<'pie' | 'ba
                     data: chartData.data,
                     backgroundColor: chartData.labels.map((_, i) => colorPalette[i % colorPalette.length]),
                     borderWidth: 1,
+                    borderColor: '#3D4A87', // Lighter dark blue border
                 },
             ],
         };

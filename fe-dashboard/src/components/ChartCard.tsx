@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import type { ChartData as ChartJsData } from 'chart.js';
 import type { ChartProps } from 'react-chartjs-2';
 import { FiBookmark } from 'react-icons/fi';
+import { RiUnpinLine } from 'react-icons/ri';
 import { pieOptions, barOptions, lineOptions, doughnutOptions, generateChartData } from '../utils/chartUtils';
 import { ChartData } from '../types';
 
@@ -32,33 +33,46 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
     const isPinned = !!chartData.pinnedChartId;
 
     return (
-        <div className="flex-shrink-0 w-[400px] sm:w-[450px] md:w-[500px] bg-white p-6 rounded-3xl shadow-lg border border-[#E5E7EB] snap-center">
+        <div className="w-full max-w-[400px] bg-white p-5 rounded-2xl shadow-md border border-[#E5E7EB] hover:shadow-lg transition-shadow duration-200">
+            {/* Header Section */}
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-[#6b6a69] text-center flex items-center gap-2">
-                    {chartData.title}
+                <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-[#1F2A44]">{chartData.title}</h2>
                     {isPinned && (
                         <span className="text-[#10B981] text-sm flex items-center gap-1">
-                            <FiBookmark size={16} color="#10B981" /> Pinned
+                            <span className="fill-[#10B981] inline-block">
+                                <FiBookmark size={16} color="#10B981" />
+                            </span>
                         </span>
                     )}
-                </h2>
-                {isPinned ? (
-                    <button
-                        onClick={() => onUnpin(chartData.pinnedChartId!, chartData)}
-                        className="px-4 py-2 bg-[#E16349] text-white rounded-full font-medium shadow-sm hover:brightness-110 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
-                    >
-                        Unpin
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => onPin(chartData)}
-                        className="px-4 py-2 bg-[#e05959] text-white rounded-full font-medium shadow-sm hover:brightness-110 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
-                    >
-                        Pin
-                    </button>
-                )}
+                </div>
+                <div className="relative group">
+                    {isPinned ? (
+                        <button
+                            onClick={() => onUnpin(chartData.pinnedChartId!, chartData)}
+                            className="text-[#E16349] hover:text-[#C1442F] p-1 rounded-full hover:bg-[#E16349]/10 transition-colors duration-200"
+                            aria-label="Unpin chart"
+                        >
+                            <RiUnpinLine size={20} color="#E16349" />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => onPin(chartData)}
+                            className="text-[#E16349] hover:text-[#C1442F] p-1 rounded-full hover:bg-[#E16349]/10 transition-colors duration-200"
+                            aria-label="Pin chart"
+                        >
+                            <FiBookmark size={20} color="#E16349" />
+                        </button>
+                    )}
+                    {/* Tooltip */}
+                    <span className="absolute top-10 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-[#1F2A44] text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        {isPinned ? 'Unpin' : 'Pin'}
+                    </span>
+                </div>
             </div>
-            <div className="h-[350px]">
+
+            {/* Chart Section */}
+            <div className="h-[300px] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
                 {chartData.chartType === 'pie' && (
                     <Pie
                         type="pie"
@@ -88,6 +102,9 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
                     />
                 )}
             </div>
+
+            {/* Prompt Info */}
+            <p className="text-sm text-[#6B7280] mt-4 truncate">{chartData.prompt}</p>
         </div>
     );
 }
