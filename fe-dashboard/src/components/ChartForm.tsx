@@ -24,6 +24,7 @@ export default function ChartForm({
         <form onSubmit={onSubmit} className="w-10/12 max-w-3xl mx-auto mb-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
             <div className="relative flex-1">
                 <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] w-5 h-5">
+
                     <FiSearch />
                 </span>
                 <input
