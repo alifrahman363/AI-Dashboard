@@ -110,7 +110,7 @@ export default function Home() {
             </div>
           )}
 
-          <div className="w-full overflow-x-auto snap-x snap-mandatory flex gap-6 pb-4 justify-center items-center">
+          <div className="w-full snap-x snap-mandatory flex gap-6 pb-4 justify-center items-center">
             {charts.length === 0 ? (
               <div></div>
             ) : (
