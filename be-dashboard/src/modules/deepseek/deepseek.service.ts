@@ -2,12 +2,28 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { DataSource } from 'typeorm';
 import { firstValueFrom } from 'rxjs';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PinnedChart } from '../pinnedCharts/pinnedChart.entity';
+
+// Define the ChartData interface to match the frontend's expectation
+interface ChartData {
+  chartType: 'bar' | 'pie' | 'line' | 'doughnut';
+  labels: string[];
+  data: number[];
+  title: string;
+  prompt: string;
+  query: string;
+  pinnedChartId?: number; // Optional, used for pinned charts
+}
 
 @Injectable()
 export class DeepseekService {
   constructor(
     private readonly httpService: HttpService,
     private readonly dataSource: DataSource,
+    @InjectRepository(PinnedChart)
+    private readonly pinnedChartRepository: Repository<PinnedChart>,
   ) { }
 
   private readonly schema = `
@@ -206,6 +222,112 @@ export class DeepseekService {
     } catch (error) {
       throw new HttpException(
         `Failed to generate or execute MySQL query: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getPinnedCharts(): Promise<ChartData[]> {
+    try {
+      // Fetch all pinned charts
+      const pinnedCharts = await this.pinnedChartRepository.find({
+        where: { isPinned: true },
+        order: { createdAt: 'DESC' },
+      });
+
+      // If no pinned charts are found, return an empty array
+      if (!pinnedCharts || pinnedCharts.length === 0) {
+        return [];
+      }
+
+      // Map each pinned chart to ChartData format by executing its query
+      const chartDataPromises = pinnedCharts.map(async (chart) => {
+        try {
+          // Execute the raw SQL query
+          const result = await this.dataSource.query(chart.query);
+
+          // Handle empty results
+          if (!result || result.length === 0) {
+            throw new HttpException(
+              `Query for pinned chart ${chart.id} returned no results`,
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+
+          // Format for Chart.js (reusing logic from sendPrompt)
+          let chartType = 'bar'; // Default
+          let labels: string[] = [];
+          let data: number[] = [];
+          const title = chart.prompt;
+
+          // Handle "total" requests (e.g., "total products")
+          if (chart.query.toUpperCase().includes('COUNT')) {
+            chartType = 'pie';
+            const key = Object.keys(result[0])[0]; // Should be 'count'
+            labels = [key];
+            data = [Number(result[0][key])];
+          }
+          // Handle time-based requests (e.g., "per month", "over time")
+          else if (chart.prompt.toLowerCase().match(/per month|over time|by date/)) {
+            chartType = 'line';
+            labels = result.map((row: any) => {
+              const stringKey = Object.keys(row).find(k => k.toLowerCase().includes('date') || typeof row[k] === 'string') || Object.keys(row)[0];
+              return row[stringKey].toString();
+            });
+            data = result.map((row: any) => {
+              const numericKey = Object.keys(row).find(k => typeof row[k] === 'number') || Object.keys(row)[1] || Object.keys(row)[0];
+              return Number(row[numericKey]);
+            });
+          }
+          // Handle single-row, multi-column results
+          else if (result.length === 1 && Object.keys(result[0]).length > 1) {
+            chartType = 'doughnut';
+            labels = Object.keys(result[0]).filter(k => typeof result[0][k] === 'number');
+            data = labels.map(k => Number(result[0][k]));
+          }
+          // Handle multiple rows (e.g., "get all products")
+          else {
+            chartType = 'bar';
+            labels = result.map((row: any) => {
+              const stringKey = Object.keys(row).find(k => typeof row[k] === 'string') || Object.keys(row)[0];
+              return row[stringKey].toString();
+            });
+            data = result.map((row: any) => {
+              const numericKey = Object.keys(row).find(k => typeof row[k] === 'number') || Object.keys(row)[1] || Object.keys(row)[0];
+              return Number(row[numericKey]);
+            });
+          }
+
+          // Validate chart data
+          if (labels.length === 0 || data.length === 0 || labels.length !== data.length) {
+            throw new HttpException(
+              `Invalid chart data generated from query result for pinned chart ${chart.id}`,
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+          }
+
+          return {
+            chartType,
+            labels,
+            data,
+            title,
+            prompt: chart.prompt,
+            query: chart.query,
+            pinnedChartId: chart.id,
+          } as ChartData;
+        } catch (error) {
+          throw new HttpException(
+            `Failed to process pinned chart ${chart.id}: ${error.message}`,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      });
+
+      // Wait for all chart data transformations to complete
+      return Promise.all(chartDataPromises);
+    } catch (error) {
+      throw new HttpException(
+        `Failed to retrieve pinned charts: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

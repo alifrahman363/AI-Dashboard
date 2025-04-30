@@ -2,212 +2,189 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Inter } from 'next/font/google';
 import ChartCard from '../components/ChartCard';
-import ChartForm from '../components/ChartForm';
-import Message from '../components/Message';
-import PinnedChartCard from '../components/PinnedChartCard'; // Fixed import
-import Tabs from '../components/Tabs';
-import { ChartData, PinnedChart } from '../types';
-
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-});
+import { ChartData } from '../types';
 
 export default function Home() {
-  const [prompt, setPrompt] = useState('');
-  const [chartDataList, setChartDataList] = useState<ChartData[]>([]);
-  const [pinnedCharts, setPinnedCharts] = useState<PinnedChart[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [pinMessage, setPinMessage] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState<string>('');
+  const [charts, setCharts] = useState<ChartData[]>([]);
+  const [pinnedCharts, setPinnedCharts] = useState<ChartData[]>([]);
   const [activeTab, setActiveTab] = useState<'generate' | 'pinned'>('generate');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasFetchedPinnedCharts, setHasFetchedPinnedCharts] = useState<boolean>(false);
 
+  // Fetch pinned charts only when the "Pinned Charts" tab is clicked
   const fetchPinnedCharts = async () => {
-    try {
-      const response = await axios.get('http://localhost:3000/pinned-charts');
-      setPinnedCharts(response.data);
-      setChartDataList(prev =>
-        prev.map(chart => {
-          const pinnedChart = response.data.find(
-            (pc: PinnedChart) => pc.prompt === chart.prompt && pc.query === chart.query && pc.isPinned
-          );
-          return { ...chart, pinnedChartId: pinnedChart ? pinnedChart.id : undefined };
-        })
-      );
-    } catch (err: any) {
-      console.error('Error fetching pinned charts:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchPinnedCharts();
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
     setLoading(true);
-
+    setError(null);
     try {
-      const response = await axios.post('http://localhost:3000/deepseek/prompt', { prompt });
-      console.log('Backend response:', response.data);
-      const newChart: ChartData = { ...response.data, pinnedChartId: undefined };
-      setChartDataList(prev => [...prev, newChart]);
-      const pinnedResponse = await axios.post('http://localhost:3000/pinned-charts/check', {
-        prompt: newChart.prompt,
-        query: newChart.query,
-      });
-      if (pinnedResponse.data) {
-        setChartDataList(prev =>
-          prev.map(chart =>
-            chart.prompt === newChart.prompt && chart.query === newChart.query
-              ? { ...chart, pinnedChartId: pinnedResponse.data.id }
-              : chart
-          )
-        );
-      }
+      const response = await axios.get('http://localhost:3000/deepseek/pinned-charts');
+      setPinnedCharts(response.data);
     } catch (err: any) {
-      console.error('Error fetching chart data:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to fetch chart data');
+      setError(err.response?.data?.message || 'Failed to fetch pinned charts');
+      setPinnedCharts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClearCharts = () => {
-    setChartDataList([]);
+  // Handle tab change and fetch pinned charts only when needed
+  const handleTabChange = (tab: 'generate' | 'pinned') => {
+    setActiveTab(tab);
+    if (tab === 'pinned' && !hasFetchedPinnedCharts) {
+      fetchPinnedCharts();
+      setHasFetchedPinnedCharts(true);
+    }
   };
 
-  const handlePinChart = async (chartData: ChartData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prompt.trim()) return;
+
+    setLoading(true);
+    setError(null);
     try {
-      const response = await axios.post('http://localhost:3000/pinned-charts/pin', {
+      const response = await axios.post('http://localhost:3000/deepseek/prompt', { prompt });
+      const newChart: ChartData = response.data;
+      setCharts((prev) => [...prev, newChart]);
+      setPrompt('');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to generate chart');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearCharts = () => {
+    setCharts([]);
+  };
+
+  const pinChart = async (chartData: ChartData) => {
+    // Assuming you have an endpoint to pin a chart
+    try {
+      await axios.post('http://localhost:3000/pinned-charts/pin', {
         prompt: chartData.prompt,
         query: chartData.query,
+        chartType: chartData.chartType,
       });
-      console.log('Pinned chart response:', response.data);
-      setPinMessage('Chart pinned successfully!');
-      setTimeout(() => setPinMessage(null), 3000);
-      setChartDataList(prev =>
-        prev.map(chart =>
-          chart.prompt === chartData.prompt && chart.query === chartData.query
-            ? { ...chart, pinnedChartId: response.data.id }
-            : chart
-        )
-      );
+      // Fetch pinned charts again to update the list
       await fetchPinnedCharts();
     } catch (err: any) {
-      console.error('Error pinning chart:', err);
-      setPinMessage(err.response?.data?.message || err.message || 'Failed to pin chart');
-      setTimeout(() => setPinMessage(null), 3000);
+      setError(err.response?.data?.message || 'Failed to pin chart');
     }
   };
 
-  const handleUnpinChart = async (pinnedChartId: number, chart: ChartData | PinnedChart) => {
+  const unpinChart = async (pinnedChartId: number) => {
+    // Assuming you have an endpoint to unpin a chart
     try {
       await axios.post(`http://localhost:3000/pinned-charts/${pinnedChartId}/unpin`);
-      setPinMessage('Chart unpinned successfully!');
-      setTimeout(() => setPinMessage(null), 3000);
-      setChartDataList(prev =>
-        prev.map(chartItem =>
-          chartItem.prompt === chart.prompt && chartItem.query === chart.query
-            ? { ...chartItem, pinnedChartId: undefined }
-            : chartItem
-        )
-      );
+      // Fetch pinned charts again to update the list
       await fetchPinnedCharts();
     } catch (err: any) {
-      console.error('Error unpinning chart:', err);
-      setPinMessage(err.response?.data?.message || err.message || 'Failed to unpin chart');
-      setTimeout(() => setPinMessage(null), 3000);
-    }
-  };
-
-  const handleViewPinnedChart = async (pinnedChartId: number) => {
-    try {
-      const response = await axios.get(`http://localhost:3000/pinned-charts/${pinnedChartId}/data`);
-      const { prompt, data } = response.data;
-      const existingChart = chartDataList.find(chart => chart.prompt === prompt);
-      const chartType = existingChart ? existingChart.chartType : 'bar';
-      const newChart: ChartData = {
-        chartType,
-        labels: data.map((item: any) => item.name || Object.keys(item)[0]),
-        data: data.map((item: any) => item.price || Object.values(item)[1]),
-        title: prompt,
-        prompt,
-        query: pinnedCharts.find(chart => chart.id === pinnedChartId)!.query,
-        pinnedChartId,
-      };
-      setChartDataList(prev => [...prev, newChart]);
-      setActiveTab('generate');
-    } catch (err: any) {
-      console.error('Error viewing pinned chart:', err);
-      setPinMessage(err.response?.data?.message || err.message || 'Failed to view pinned chart');
-      setTimeout(() => setPinMessage(null), 3000);
+      setError(err.response?.data?.message || 'Failed to unpin chart');
     }
   };
 
   return (
-    <div className={`${inter.className} min-h-screen bg-gradient-to-b from-[#E0F2FE] to-[#F8FAFC] flex flex-col items-center py-6 px-4 relative`}>
-      <div className="fixed top-4 right-4 flex flex-col gap-2 z-50">
-        {error && <Message message={error} type="error" onClose={() => setError(null)} />}
-        {pinMessage && (
-          <Message
-            message={pinMessage}
-            type={pinMessage.includes('successfully') ? 'success' : 'error'}
-            onClose={() => setPinMessage(null)}
-          />
-        )}
+    <div className="min-h-screen bg-gradient-to-br from-[#F3F4F6] to-[#E5E7EB] p-6 flex flex-col items-center">
+      <h1 className="text-4xl font-bold text-[#1E3A8A] mb-8">AI Dashboard</h1>
+
+      {/* Tabs */}
+      <div className="flex space-x-4 mb-6">
+        <button
+          onClick={() => handleTabChange('generate')}
+          className={`px-6 py-3 rounded-full font-medium transition-all duration-200 shadow-sm hover:shadow-lg hover:scale-105 active:scale-95 ${activeTab === 'generate'
+            ? 'bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white'
+            : 'bg-white text-[#1E3A8A] border border-[#E5E7EB]'
+            }`}
+        >
+          Generate Charts
+        </button>
+        <button
+          onClick={() => handleTabChange('pinned')}
+          className={`px-6 py-3 rounded-full font-medium transition-all duration-200 shadow-sm hover:shadow-lg hover:scale-105 active:scale-95 ${activeTab === 'pinned'
+            ? 'bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white'
+            : 'bg-white text-[#1E3A8A] border border-[#E5E7EB]'
+            }`}
+        >
+          Pinned Charts
+        </button>
       </div>
 
-      <h1 className="mt-10 mb-10 text-4xl font-extrabold text-[#1E3A8A] tracking-tight">AI Dashboard</h1>
-
-      <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
-
+      {/* Generate Charts Tab */}
       {activeTab === 'generate' && (
         <>
-          <ChartForm
-            prompt={prompt}
-            setPrompt={setPrompt}
-            onSubmit={handleSubmit}
-            loading={loading}
-            chartDataListLength={chartDataList.length}
-            onClear={handleClearCharts}
-          />
-          {chartDataList.length > 0 && (
-            <div className="w-full max-w-[90vw] overflow-x-auto snap-x snap-mandatory">
-              <div className="flex flex-row gap-6 pb-4 scroll-smooth justify-center items-center snap-x snap-mandatory">
-                {chartDataList.map((chartData, index) => (
-                  <ChartCard
-                    key={index}
-                    chartData={chartData}
-                    onPin={handlePinChart}
-                    onUnpin={handleUnpinChart}
-                  />
-                ))}
-              </div>
+          <form onSubmit={handleSubmit} className="w-full max-w-2xl mb-6 flex flex-col sm:flex-row gap-4">
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Enter your prompt (e.g., Get all products with a price greater than 500)"
+              className="flex-1 px-4 py-3 rounded-full bg-white border border-[#E5E7EB] text-[#1E3A8A] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] shadow-sm"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-3 bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white rounded-full font-medium shadow-sm hover:brightness-110 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Generating...' : 'Generate'}
+            </button>
+            <button
+              type="button"
+              onClick={clearCharts}
+              disabled={charts.length === 0}
+              className="px-6 py-3 bg-gradient-to-r from-[#EF4444] to-[#EC4899] text-white rounded-full font-medium shadow-sm hover:brightness-110 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Clear Charts
+            </button>
+          </form>
+
+          {error && (
+            <div className="w-full max-w-2xl mb-6 p-4 bg-[#FEE2E2] text-[#DC2626] rounded-lg shadow-sm">
+              {error}
             </div>
           )}
+
+          <div className="w-full overflow-x-auto snap-x snap-mandatory flex gap-6 pb-4 justify-center items-center">
+            {charts.length === 0 ? (
+              <p className="text-[#6B7280] text-center w-full">No charts generated yet.</p>
+            ) : (
+              charts.map((chart, index) => (
+                <ChartCard
+                  key={index}
+                  chartData={chart}
+                  onPin={pinChart}
+                  onUnpin={unpinChart}
+                />
+              ))
+            )}
+          </div>
         </>
       )}
 
+      {/* Pinned Charts Tab */}
       {activeTab === 'pinned' && (
-        <div className="w-full max-w-2xl mb-12">
-          <h2 className="text-2xl font-semibold text-[#1E3A8A] mb-4 text-center">Pinned Charts</h2>
-          {pinnedCharts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {pinnedCharts.map(chart => (
-                <PinnedChartCard
-                  key={chart.id}
-                  chart={chart}
-                  onView={handleViewPinnedChart}
-                  onUnpin={handleUnpinChart}
+        <div className="w-full max-w-5xl">
+          {loading ? (
+            <p className="text-[#1E3A8A] text-center">Loading pinned charts...</p>
+          ) : error ? (
+            <div className="w-full p-4 bg-[#FEE2E2] text-[#DC2626] rounded-lg shadow-sm">
+              {error}
+            </div>
+          ) : pinnedCharts.length === 0 ? (
+            <p className="text-[#6B7280] text-center">No pinned charts available.</p>
+          ) : (
+            <div className="w-full overflow-x-auto snap-x snap-mandatory flex gap-6 pb-4">
+              {pinnedCharts.map((chart, index) => (
+                <ChartCard
+                  key={chart.pinnedChartId || index}
+                  chartData={chart}
+                  onPin={pinChart}
+                  onUnpin={unpinChart}
                 />
               ))}
             </div>
-          ) : (
-            <p className="text-[#4B5563] text-center">No pinned charts available.</p>
           )}
         </div>
       )}
