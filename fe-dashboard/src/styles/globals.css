@@ -47,3 +47,17 @@ body {
     }
   }
 }
+
+@keyframes slide-in {
+  0% {
+    width: 0;
+  }
+
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out forwards;
+}

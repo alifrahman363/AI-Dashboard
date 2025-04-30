@@ -34,7 +34,7 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
     return (
         <div className="flex-shrink-0 w-[400px] sm:w-[450px] md:w-[500px] bg-white p-6 rounded-3xl shadow-lg border border-[#E5E7EB] snap-center">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-[#1E3A8A] text-center flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-[#6b6a69] text-center flex items-center gap-2">
                     {chartData.title}
                     {isPinned && (
                         <span className="text-[#10B981] text-sm flex items-center gap-1">
@@ -45,14 +45,14 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
                 {isPinned ? (
                     <button
                         onClick={() => onUnpin(chartData.pinnedChartId!, chartData)}
-                        className="px-4 py-2 bg-gradient-to-r from-[#EF4444] to-[#EC4899] text-white rounded-full font-medium shadow-sm hover:brightness-110 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                        className="px-4 py-2 bg-[#E16349] text-white rounded-full font-medium shadow-sm hover:brightness-110 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
                     >
                         Unpin
                     </button>
                 ) : (
                     <button
                         onClick={() => onPin(chartData)}
-                        className="px-4 py-2 bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white rounded-full font-medium shadow-sm hover:brightness-110 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                        className="px-4 py-2 bg-[#e05959] text-white rounded-full font-medium shadow-sm hover:brightness-110 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
                     >
                         Pin
                     </button>

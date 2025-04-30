@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import ChartCard from '../components/ChartCard';
 import { ChartData } from '../types';
+import { FiRefreshCw } from 'react-icons/fi';
+import Tabs from '../components/Tabs';
+import ChartForm from '../components/ChartForm';
 
 export default function Home() {
   const [prompt, setPrompt] = useState<string>('');
@@ -61,14 +64,12 @@ export default function Home() {
   };
 
   const pinChart = async (chartData: ChartData) => {
-    // Assuming you have an endpoint to pin a chart
     try {
       await axios.post('http://localhost:3000/pinned-charts/pin', {
         prompt: chartData.prompt,
         query: chartData.query,
         chartType: chartData.chartType,
       });
-      // Fetch pinned charts again to update the list
       await fetchPinnedCharts();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to pin chart');
@@ -76,10 +77,8 @@ export default function Home() {
   };
 
   const unpinChart = async (pinnedChartId: number) => {
-    // Assuming you have an endpoint to unpin a chart
     try {
       await axios.post(`http://localhost:3000/pinned-charts/${pinnedChartId}/unpin`);
-      // Fetch pinned charts again to update the list
       await fetchPinnedCharts();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to unpin chart');
@@ -87,68 +86,33 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F3F4F6] to-[#E5E7EB] p-6 flex flex-col items-center">
-      <h1 className="text-4xl font-bold text-[#1E3A8A] mb-8">AI Dashboard</h1>
+    <div className="min-h-screen bg-[#F8F8F8] p-8 flex flex-col items-center">
+      <h1 className="text-4xl font-extrabold text-[#1F2A44] mb-10 tracking-tight">AI Dashboard</h1>
 
       {/* Tabs */}
-      <div className="flex space-x-4 mb-6">
-        <button
-          onClick={() => handleTabChange('generate')}
-          className={`px-6 py-3 rounded-full font-medium transition-all duration-200 shadow-sm hover:shadow-lg hover:scale-105 active:scale-95 ${activeTab === 'generate'
-            ? 'bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white'
-            : 'bg-white text-[#1E3A8A] border border-[#E5E7EB]'
-            }`}
-        >
-          Generate Charts
-        </button>
-        <button
-          onClick={() => handleTabChange('pinned')}
-          className={`px-6 py-3 rounded-full font-medium transition-all duration-200 shadow-sm hover:shadow-lg hover:scale-105 active:scale-95 ${activeTab === 'pinned'
-            ? 'bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white'
-            : 'bg-white text-[#1E3A8A] border border-[#E5E7EB]'
-            }`}
-        >
-          Pinned Charts
-        </button>
-      </div>
+      <Tabs activeTab={activeTab} setActiveTab={handleTabChange} />
 
       {/* Generate Charts Tab */}
       {activeTab === 'generate' && (
-        <>
-          <form onSubmit={handleSubmit} className="w-full max-w-2xl mb-6 flex flex-col sm:flex-row gap-4">
-            <input
-              type="text"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Enter your prompt (e.g., Get all products with a price greater than 500)"
-              className="flex-1 px-4 py-3 rounded-full bg-white border border-[#E5E7EB] text-[#1E3A8A] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] shadow-sm"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-3 bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white rounded-full font-medium shadow-sm hover:brightness-110 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Generating...' : 'Generate'}
-            </button>
-            <button
-              type="button"
-              onClick={clearCharts}
-              disabled={charts.length === 0}
-              className="px-6 py-3 bg-gradient-to-r from-[#EF4444] to-[#EC4899] text-white rounded-full font-medium shadow-sm hover:brightness-110 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Clear Charts
-            </button>
-          </form>
+        <div className="w-full max-w-4xl">
+          <ChartForm
+            prompt={prompt}
+            setPrompt={setPrompt}
+            onSubmit={handleSubmit}
+            loading={loading}
+            chartDataListLength={charts.length}
+            onClear={clearCharts}
+          />
 
           {error && (
-            <div className="w-full max-w-2xl mb-6 p-4 bg-[#FEE2E2] text-[#DC2626] rounded-lg shadow-sm">
+            <div className="w-full mb-6 p-4 bg-[#FFF1F2] text-[#E11D48] rounded-xl shadow-sm border border-[#E11D48]/20">
               {error}
             </div>
           )}
 
           <div className="w-full overflow-x-auto snap-x snap-mandatory flex gap-6 pb-4 justify-center items-center">
             {charts.length === 0 ? (
-              <p className="text-[#6B7280] text-center w-full">No charts generated yet.</p>
+              <div></div>
             ) : (
               charts.map((chart, index) => (
                 <ChartCard
@@ -160,20 +124,29 @@ export default function Home() {
               ))
             )}
           </div>
-        </>
+        </div>
       )}
 
       {/* Pinned Charts Tab */}
       {activeTab === 'pinned' && (
         <div className="w-full max-w-5xl">
           {loading ? (
-            <p className="text-[#1E3A8A] text-center">Loading pinned charts...</p>
+            <div className="w-full flex justify-center items-center p-12">
+              <div className="w-12 h-12 border-4 border-[#3B82F6] border-t-transparent rounded-full animate-spin"></div>
+            </div>
           ) : error ? (
-            <div className="w-full p-4 bg-[#FEE2E2] text-[#DC2626] rounded-lg shadow-sm">
+            <div className="w-full p-4 bg-[#FFF1F2] text-[#E11D48] rounded-xl shadow-sm border border-[#E11D48]/20">
               {error}
             </div>
           ) : pinnedCharts.length === 0 ? (
-            <p className="text-[#6B7280] text-center">No pinned charts available.</p>
+            <div className="text-[#6B7280] text-center w-full p-12 border-2 border-dashed border-[#D1D5DB] rounded-xl bg-white shadow-sm">
+              <div className="flex flex-col items-center gap-4">
+                <div className="text-[#9CA3AF] animate-pulse">
+                  <FiRefreshCw size={36} />
+                </div>
+                <p className="text-lg">No pinned charts available. Generate and pin charts to see them here.</p>
+              </div>
+            </div>
           ) : (
             <div className="w-full overflow-x-auto snap-x snap-mandatory flex gap-6 pb-4">
               {pinnedCharts.map((chart, index) => (
