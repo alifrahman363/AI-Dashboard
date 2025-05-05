@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import axios from 'axios';
-import ChartCard from '../components/ChartCard';
-import { ChartData } from '../types';
+import { useState } from 'react';
 import { FiRefreshCw } from 'react-icons/fi';
-import Tabs from '../components/Tabs';
+import ChartCard from '../components/ChartCard';
 import ChartForm from '../components/ChartForm';
+import Tabs from '../components/Tabs';
+import { ChartData } from '../types';
 
 export default function Home() {
   const [prompt, setPrompt] = useState<string>('');
@@ -94,7 +94,7 @@ export default function Home() {
 
       {/* Generate Charts Tab */}
       {activeTab === 'generate' && (
-        <div className="w-full max-w-4xl">
+        <div className="w-full max-w-7xl">
           <ChartForm
             prompt={prompt}
             setPrompt={setPrompt}
@@ -110,17 +110,18 @@ export default function Home() {
             </div>
           )}
 
-          <div className="w-full snap-x snap-mandatory flex gap-6 pb-4 justify-center items-center">
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 pb-4">
             {charts.length === 0 ? (
               <div></div>
             ) : (
               charts.map((chart, index) => (
-                <ChartCard
-                  key={index}
-                  chartData={chart}
-                  onPin={pinChart}
-                  onUnpin={unpinChart}
-                />
+                <div key={index} className="w-full min-w-[350px]">
+                  <ChartCard
+                    chartData={chart}
+                    onPin={pinChart}
+                    onUnpin={unpinChart}
+                  />
+                </div>
               ))
             )}
           </div>
@@ -129,7 +130,7 @@ export default function Home() {
 
       {/* Pinned Charts Tab */}
       {activeTab === 'pinned' && (
-        <div className="w-full max-w-5xl">
+        <div className="w-full max-w-7xl">
           {loading ? (
             <div className="w-full flex justify-center items-center p-12">
               <div className="w-12 h-12 border-4 border-[#3B82F6] border-t-transparent rounded-full animate-spin"></div>
@@ -148,14 +149,15 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <div className="w-full snap-x snap-mandatory flex gap-6 pb-4">
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 pb-4">
               {pinnedCharts.map((chart, index) => (
-                <ChartCard
-                  key={chart.pinnedChartId || index}
-                  chartData={chart}
-                  onPin={pinChart}
-                  onUnpin={unpinChart}
-                />
+                <div key={chart.pinnedChartId || index} className="w-full min-w-[350px]">
+                  <ChartCard
+                    chartData={chart}
+                    onPin={pinChart}
+                    onUnpin={unpinChart}
+                  />
+                </div>
               ))}
             </div>
           )}

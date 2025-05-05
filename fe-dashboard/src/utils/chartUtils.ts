@@ -1,19 +1,19 @@
-import type { ChartOptions, ChartData as ChartJsData } from 'chart.js';
+import type { ChartData as ChartJsData, ChartOptions } from 'chart.js';
 import {
-    Chart,
     ArcElement,
-    BarElement,
-    LineElement,
-    PointElement,
-    PieController,
     BarController,
-    LineController,
-    DoughnutController,
+    BarElement,
     CategoryScale,
+    Chart,
+    DoughnutController,
+    Legend,
     LinearScale,
+    LineController,
+    LineElement,
+    PieController,
+    PointElement,
     Title,
     Tooltip,
-    Legend,
 } from 'chart.js';
 import { ChartData } from '../types';
 
@@ -46,7 +46,8 @@ export const colorPalette = [
 
 export const baseOptions: ChartOptions<any> = {
     responsive: true,
-    maintainAspectRatio: false,
+    maintainAspectRatio: false, // Allow custom height control
+    height: 250, // Fixed height for all charts (fits within 300px container with padding)
     plugins: {
         legend: {
             position: 'bottom' as const,
@@ -102,6 +103,8 @@ export const barOptions: ChartOptions<'bar'> = {
             },
             ticks: {
                 color: '#3D4A87', // Lighter dark blue for axis labels
+                maxRotation: 45, // Rotate labels if needed to prevent overlap
+                autoSkip: true,
             },
         },
         y: {
@@ -130,6 +133,8 @@ export const lineOptions: ChartOptions<'line'> = {
             },
             ticks: {
                 color: '#3D4A87', // Lighter dark blue for axis labels
+                maxRotation: 45, // Rotate labels if needed to prevent overlap
+                autoSkip: true,
             },
         },
         y: {

@@ -12,11 +12,22 @@ kill_port() {
 
     while [ $attempt -le $retries ]; do
         echo "Attempt $attempt: Killing processes using port $port ($service_name)..."
-        lsof -ti :$port | xargs kill -9 2>/dev/null
-        sleep 1  # Brief delay to allow the system to release the port
-        if ! lsof -ti :$port > /dev/null; then
-            echo "Port $port is now free."
-            return 0
+        if [ "$port" -eq 3002 ]; then
+            # Use fuser to kill processes on port 3002
+            fuser -k 3002/tcp 2>/dev/null
+            sleep 1  # Brief delay to allow the system to release the port
+            if ! lsof -ti :$port > /dev/null; then
+                echo "Port $port is now free."
+                return 0
+            fi
+        else
+            # Use lsof and kill for other ports
+            lsof -ti :$port | xargs kill -9 2>/dev/null
+            sleep 1  # Brief delay to allow the system to release the port
+            if ! lsof -ti :$port > /dev/null; then
+                echo "Port $port is now free."
+                return 0
+            fi
         fi
         echo "Port $port is still in use, retrying..."
         attempt=$((attempt + 1))
@@ -108,6 +119,3 @@ cd ..
 echo "All services started. PIDs saved in $PID_FILE"
 echo "To stop all services, run: ./run.sh stop"
 echo "Access the application at: http://localhost:3002"
-
-# Optional: Comment showing how to kill a port manually
-# fuser -k 3002/tcp

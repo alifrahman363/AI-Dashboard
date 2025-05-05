@@ -32,12 +32,34 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
 
     const isPinned = !!chartData.pinnedChartId;
 
+    // Custom options to enforce fixed height and disable dynamic resizing
+    const getChartOptions = (chartType: string) => {
+        const baseOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            height: 250, // Fixed height for the chart content
+        };
+
+        switch (chartType) {
+            case 'pie':
+                return { ...pieOptions, ...baseOptions };
+            case 'bar':
+                return { ...barOptions, ...baseOptions };
+            case 'line':
+                return { ...lineOptions, ...baseOptions };
+            case 'doughnut':
+                return { ...doughnutOptions, ...baseOptions };
+            default:
+                return baseOptions;
+        }
+    };
+
     return (
-        <div className="w-full max-w-[400px] bg-white p-5 rounded-2xl shadow-md border border-[#E5E7EB] hover:shadow-lg transition-shadow duration-200">
-            {/* Header Section */}
-            <div className="flex justify-between items-center mb-4">
+        <div className="w-full max-w-[400px] p-5 mb-6 rounded-2xl shadow-md border border-[#E5E7EB] hover:shadow-lg transition-shadow duration-200 h-[400px]">
+            {/* Header Section with Fixed Height */}
+            <div className="flex justify-between items-center mb-4 h-12 overflow-hidden">
                 <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold text-[#1F2A44]">{chartData.title}</h2>
+                    <h2 className="text-lg font-semibold text-[#1F2A44] max-w-[250px] truncate">{chartData.title}</h2>
                     {isPinned && (
                         <span className="text-[#10B981] text-sm flex items-center gap-1">
                             <span className="fill-[#10B981] inline-block">
@@ -72,39 +94,39 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
             </div>
 
             {/* Chart Section */}
-            <div className="h-[300px] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
+            <div className="h-[300px] bg-[#F9FAFB] rounded-lg flex items-center justify-center overflow-hidden">
                 {chartData.chartType === 'pie' && (
                     <Pie
                         type="pie"
                         data={data as ChartJsData<'pie', number[], string>}
-                        options={pieOptions}
+                        options={getChartOptions('pie')}
                     />
                 )}
                 {chartData.chartType === 'bar' && (
                     <Bar
                         type="bar"
                         data={data as ChartJsData<'bar', number[], string>}
-                        options={barOptions}
+                        options={getChartOptions('bar')}
                     />
                 )}
                 {chartData.chartType === 'line' && (
                     <Line
                         type="line"
                         data={data as ChartJsData<'line', number[], string>}
-                        options={lineOptions}
+                        options={getChartOptions('line')}
                     />
                 )}
                 {chartData.chartType === 'doughnut' && (
                     <Doughnut
                         type="doughnut"
                         data={data as ChartJsData<'doughnut', number[], string>}
-                        options={doughnutOptions}
+                        options={getChartOptions('doughnut')}
                     />
                 )}
             </div>
 
             {/* Prompt Info */}
-            <p className="text-sm text-[#6B7280] mt-4 truncate">{chartData.prompt}</p>
+            <p className="text-sm text-[#6B7280] mt-6 truncate">{chartData.prompt}</p>
         </div>
     );
 }
