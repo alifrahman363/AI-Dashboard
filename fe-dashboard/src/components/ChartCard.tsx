@@ -60,6 +60,8 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
             <div className="flex justify-between items-center mb-4 h-12 overflow-hidden">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold text-[#1F2A44] max-w-[250px] truncate">{chartData.title}</h2>
+                </div>
+                <div className="relative group flex items-center gap-2">
                     {isPinned && (
                         <span className="text-[#10B981] text-sm flex items-center gap-1">
                             <span className="fill-[#10B981] inline-block">
@@ -67,8 +69,6 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
                             </span>
                         </span>
                     )}
-                </div>
-                <div className="relative group">
                     {isPinned ? (
                         <button
                             onClick={() => onUnpin(chartData.pinnedChartId!, chartData)}
