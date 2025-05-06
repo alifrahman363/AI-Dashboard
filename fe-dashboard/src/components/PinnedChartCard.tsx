@@ -1,6 +1,6 @@
 'use client';
 
-import { PinnedChart, ChartData } from '../types';
+import { ChartData, PinnedChart } from '../types';
 
 interface PinnedChartCardProps {
     chart: PinnedChart;

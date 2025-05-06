@@ -4,8 +4,8 @@ import axios from 'axios';
 import { useState, useEffect, useRef } from 'react';
 import { FiRefreshCw } from 'react-icons/fi';
 import ChartCard from '../components/ChartCard';
-import Tabs from '../components/Tabs';
 import { ChartData } from '../types';
+import { useTab } from '../components/TabContext';
 
 interface Message {
   type: 'user' | 'ai';
@@ -13,10 +13,10 @@ interface Message {
 }
 
 export default function Home() {
+  const { activeTab, setActiveTab } = useTab();
   const [prompt, setPrompt] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [pinnedCharts, setPinnedCharts] = useState<ChartData[]>([]);
-  const [activeTab, setActiveTab] = useState<'generate' | 'pinned'>('generate');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hasFetchedPinnedCharts, setHasFetchedPinnedCharts] = useState<boolean>(false);
@@ -31,7 +31,7 @@ export default function Home() {
     scrollToBottom();
   }, [messages]);
 
-  // Fetch pinned charts only when the "Pinned Charts" tab is clicked
+  // Fetch pinned charts
   const fetchPinnedCharts = async () => {
     setLoading(true);
     setError(null);
@@ -46,7 +46,7 @@ export default function Home() {
     }
   };
 
-  // Handle tab change and fetch pinned charts only when needed
+  // Handle tab change
   const handleTabChange = (tab: 'generate' | 'pinned') => {
     setActiveTab(tab);
     if (tab === 'pinned' && !hasFetchedPinnedCharts) {
@@ -55,11 +55,11 @@ export default function Home() {
     }
   };
 
+  // Handle prompt submission
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!prompt.trim()) return;
 
-    // Add user message to the conversation
     setMessages((prev) => [...prev, { type: 'user', content: prompt }]);
     setPrompt('');
     setLoading(true);
@@ -68,7 +68,6 @@ export default function Home() {
     try {
       const response = await axios.post('http://localhost:3000/deepseek/prompt', { prompt });
       const newChart: ChartData = response.data;
-      // Add AI response (chart) to the conversation
       setMessages((prev) => [...prev, { type: 'ai', content: newChart }]);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to generate chart');
@@ -81,10 +80,7 @@ export default function Home() {
     }
   };
 
-  const clearConversation = () => {
-    setMessages([]);
-  };
-
+  // Handle chart pinning
   const pinChart = async (chartData: ChartData) => {
     try {
       await axios.post('http://localhost:3000/pinned-charts/pin', {
@@ -98,6 +94,7 @@ export default function Home() {
     }
   };
 
+  // Handle chart unpinning
   const unpinChart = async (pinnedChartId: number) => {
     try {
       await axios.post(`http://localhost:3000/pinned-charts/${pinnedChartId}/unpin`);
@@ -105,6 +102,11 @@ export default function Home() {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to unpin chart');
     }
+  };
+
+  // Clear conversation
+  const clearConversation = () => {
+    setMessages([]);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -115,19 +117,14 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-gray-300 p-8 flex flex-col items-center">
-      <h1 className="text-4xl font-extrabold text-[#1F2A44] mb-10 tracking-tight">AI Dashboard</h1>
-
-      {/* Tabs */}
-      <Tabs activeTab={activeTab} setActiveTab={handleTabChange} />
-
-      {/* Generate Charts Tab (Chat Interface) */}
+    <div className="flex flex-col h-full max-w-7xl mx-auto">
+      {/* Main Content */}
       {activeTab === 'generate' && (
-        <div className="w-full max-w-3xl bg-white rounded-lg shadow-lg p-4">
+        <div className="flex-1 bg-white rounded-xl shadow-md p-6 flex flex-col h-full">
           {/* Conversation Area */}
-          <div className="h-[calc(100vh-300px)] overflow-y-auto mb-4 space-y-4">
+          <div className="flex-1 overflow-y-auto mb-4 space-y-4">
             {messages.length === 0 ? (
-              <div className="text-[#6B7280] text-center p-12 border-2 border-dashed border-[#D1D5DB] rounded-xl">
+              <div className="text-gray-500 text-center p-12 border-2 border-dashed border-gray-200 rounded-xl">
                 <p className="text-lg">Ask me anything about your data!</p>
               </div>
             ) : (
@@ -137,11 +134,13 @@ export default function Home() {
                   className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`p-3 rounded-lg max-w-[70%] ${message.type === 'user' ? 'bg-blue-100 text-[#1F2A44]' : 'bg-gray-200 text-[#1F2A44]'
+                    className={`p-3 rounded-lg max-w-[70%] ${message.type === 'user'
+                        ? 'bg-blue-100 text-gray-800'
+                        : 'bg-gray-100 text-gray-800'
                       }`}
                   >
                     {message.type === 'user' ? (
-                      <p>{typeof message.content === 'string' ? message.content : JSON.stringify(message.content)}</p>
+                      <p>{message.content as string}</p>
                     ) : typeof message.content === 'string' ? (
                       <p>{message.content}</p>
                     ) : (
@@ -157,8 +156,8 @@ export default function Home() {
             )}
             {loading && (
               <div className="flex justify-start">
-                <div className="p-3 bg-gray-200 rounded-lg max-w-[70%]">
-                  <p className="text-gray-600">Generating response...</p>
+                <div className="p-3 bg-gray-100 rounded-lg max-w-[70%]">
+                  <p className="text-gray-500">Generating response...</p>
                 </div>
               </div>
             )}
@@ -167,19 +166,21 @@ export default function Home() {
 
           {/* Chat Input */}
           <div className="flex gap-2">
-            <button
-              onClick={clearConversation}
-              className="px-3 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition-colors"
-            >
-              Clear
-            </button>
+            {messages.length > 0 && (
+              <button
+                onClick={clearConversation}
+                className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Clear
+              </button>
+            )}
             <input
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Type your prompt here..."
-              className="flex-1 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             />
             <button
               onClick={handleSubmit}
@@ -192,28 +193,25 @@ export default function Home() {
         </div>
       )}
 
-      {/* Pinned Charts Tab (Unchanged) */}
       {activeTab === 'pinned' && (
-        <div className="w-full max-w-7xl">
+        <div className="flex-1 bg-white rounded-xl shadow-md p-6 flex flex-col h-full">
           {loading ? (
-            <div className="w-full flex justify-center items-center p-12">
-              <div className="w-12 h-12 border-4 border-[#3B82F6] border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex-1 flex justify-center items-center">
+              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : error ? (
-            <div className="w-full p-4 bg-[#FFF1F2] text-[#E11D48] rounded-xl shadow-sm border border-[#E11D48]/20">
+            <div className="flex-1 flex items-center p-4 bg-red-50 text-red-600 rounded-xl shadow-sm border border-red-100">
               {error}
             </div>
           ) : pinnedCharts.length === 0 ? (
-            <div className="text-[#6B7280] text-center w-full p-12 border-2 border-dashed border-[#D1D5DB] rounded-xl bg-white shadow-sm">
+            <div className="flex-1 flex items-center text-gray-500 text-center p-12 border-2 border-dashed border-gray-200 rounded-xl bg-white shadow-sm">
               <div className="flex flex-col items-center gap-4">
-                <div className="text-[#9CA3AF] animate-pulse">
-                  <FiRefreshCw size={36} />
-                </div>
+                <FiRefreshCw size={36} className="text-gray-400 animate-pulse" />
                 <p className="text-lg">No pinned charts available. Generate and pin charts to see them here.</p>
               </div>
             </div>
           ) : (
-            <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 pb-4">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 pb-4">
               {pinnedCharts.map((chart, index) => (
                 <div key={chart.pinnedChartId || index} className="w-full min-w-[350px]">
                   <ChartCard

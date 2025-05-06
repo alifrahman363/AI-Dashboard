@@ -1,7 +1,8 @@
+import { PromptProvider } from '@/components/PromptContext';
 import { Inter } from 'next/font/google';
 import '../styles/globals.css';
-import { PromptProvider } from '@/components/PromptContext';
-import Sidebar from '@/components/Sidebar';
+import Navbar from '@/components/Navbar';
+import { TabProvider } from '@/components/TabContext';
 
 // Load Inter font from Google Fonts
 const inter = Inter({
@@ -19,17 +20,14 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans flex min-h-screen`}>
+      <body className={`${inter.variable} font-sans flex flex-col min-h-screen bg-gray-50`}>
         <PromptProvider>
-          {/* First Part: Narrower Grey Sidebar */}
-          <div className="w-1/6 bg-gray-200 p-6">
-            <Sidebar />
-          </div>
-
-          {/* Second Part: Wider White Main Content */}
-          <div className="w-5/6 bg-white p-0">
-            {children}
-          </div>
+          <TabProvider>
+            {/* Top Navbar */}
+            <Navbar />
+            {/* Main Content */}
+            <main className="flex-1 p-6">{children}</main>
+          </TabProvider>
         </PromptProvider>
       </body>
     </html>

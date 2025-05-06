@@ -1,6 +1,6 @@
 'use client';
 
-import { FiSearch, FiTrash2, FiActivity } from 'react-icons/fi';
+import { FiActivity, FiSearch, FiTrash2 } from 'react-icons/fi';
 
 interface ChartFormProps {
     prompt: string;
