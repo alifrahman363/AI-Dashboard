@@ -1,12 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTab } from './TabContext';
-import { FiBarChart2, FiBookmark, FiMenu, FiX } from 'react-icons/fi';
+import { FiBarChart2, FiBookmark, FiMenu, FiX, FiSettings, FiInfo } from 'react-icons/fi';
 
 export default function Navbar() {
     const { activeTab, setActiveTab } = useTab();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+
+    // Handle scroll event for navbar transparency effect
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 10) {
+                setScrolled(true);
+            } else {
+                setScrolled(false);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const handleTabChange = (tab: 'generate' | 'pinned') => {
         setActiveTab(tab);
@@ -14,65 +29,102 @@ export default function Navbar() {
     };
 
     return (
-        <nav className="bg-white shadow-md p-4 flex items-center justify-between">
-            {/* Logo/Brand */}
-            <div className="text-xl font-bold text-gray-800">AI Dashboard</div>
+        <nav
+            className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled
+                ? 'bg-gray-900/95 backdrop-blur-md shadow-lg'
+                : 'bg-transparent'
+                }`}
+        >
+            <div className="max-w-7xl mx-auto px-4">
+                <div className="flex items-center justify-between h-16">
+                    {/* Logo */}
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-xl">
+                            <FiBarChart2 size={22} color="white" />
+                        </div>
+                        <span className="text-lg font-semibold text-white">ChartGPT</span>
+                    </div>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-6">
-                <button
-                    onClick={() => handleTabChange('generate')}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${activeTab === 'generate'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 hover:bg-gray-100'
-                        } transition-colors duration-200`}
-                >
-                    <FiBarChart2 size={20} />
-                    {/* <span>Generate Charts</span> */}
-                </button>
-                <button
-                    onClick={() => handleTabChange('pinned')}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${activeTab === 'pinned'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 hover:bg-gray-100'
-                        } transition-colors duration-200`}
-                >
-                    <FiBookmark size={20} />
-                    {/* <span>Pinned Charts</span> */}
-                </button>
+                    {/* Desktop Navigation */}
+                    <div className="hidden md:flex items-center gap-2">
+                        <button
+                            onClick={() => handleTabChange('generate')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${activeTab === 'generate'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-300 hover:bg-gray-800'
+                                } transition-colors duration-200`}
+                        >
+                            <FiBarChart2 size={18} />
+                            <span>Generate</span>
+                        </button>
+                        <button
+                            onClick={() => handleTabChange('pinned')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${activeTab === 'pinned'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-300 hover:bg-gray-800'
+                                } transition-colors duration-200`}
+                        >
+                            <FiBookmark size={18} />
+                            <span>Pinned</span>
+                        </button>
+                    </div>
+
+                    {/* Right Side Controls - Desktop Only */}
+                    <div className="hidden md:flex items-center gap-2">
+                        <button className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors">
+                            <FiInfo size={18} />
+                        </button>
+                        <button className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors">
+                            <FiSettings size={18} />
+                        </button>
+                    </div>
+
+                    {/* Mobile Menu Button */}
+                    <button
+                        className="md:hidden p-2 text-gray-300 hover:bg-gray-800 rounded-lg"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        {isMobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+                    </button>
+                </div>
             </div>
-
-            {/* Mobile Menu Button */}
-            <button
-                className="md:hidden text-gray-600"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-                {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-            </button>
 
             {/* Mobile Navigation */}
             {isMobileMenuOpen && (
-                <div className="absolute top-16 left-0 w-full bg-white shadow-md flex flex-col p-4 md:hidden">
-                    <button
-                        onClick={() => handleTabChange('generate')}
-                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${activeTab === 'generate'
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-600 hover:bg-gray-100'
-                            } transition-colors duration-200`}
-                    >
-                        <FiBarChart2 size={20} />
-                        <span>Generate Charts</span>
-                    </button>
-                    <button
-                        onClick={() => handleTabChange('pinned')}
-                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${activeTab === 'pinned'
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-600 hover:bg-gray-100'
-                            } transition-colors duration-200`}
-                    >
-                        <FiBookmark size={20} />
-                        <span>Pinned Charts</span>
-                    </button>
+                <div className="md:hidden bg-gray-900 border-t border-gray-800 animate-slide-down">
+                    <div className="px-4 py-3 space-y-2">
+                        <button
+                            onClick={() => handleTabChange('generate')}
+                            className={`flex items-center w-full gap-3 p-3 rounded-lg ${activeTab === 'generate'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-300 hover:bg-gray-800'
+                                } transition-colors duration-200`}
+                        >
+                            <FiBarChart2 size={20} />
+                            <span>Generate Charts</span>
+                        </button>
+                        <button
+                            onClick={() => handleTabChange('pinned')}
+                            className={`flex items-center w-full gap-3 p-3 rounded-lg ${activeTab === 'pinned'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-300 hover:bg-gray-800'
+                                } transition-colors duration-200`}
+                        >
+                            <FiBookmark size={20} />
+                            <span>Pinned Charts</span>
+                        </button>
+
+                        <div className="border-t border-gray-800 my-2"></div>
+
+                        <button className="flex items-center w-full gap-3 p-3 text-gray-300 hover:bg-gray-800 rounded-lg transition-colors">
+                            <FiInfo size={20} />
+                            <span>Help</span>
+                        </button>
+                        <button className="flex items-center w-full gap-3 p-3 text-gray-300 hover:bg-gray-800 rounded-lg transition-colors">
+                            <FiSettings size={20} />
+                            <span>Settings</span>
+                        </button>
+                    </div>
                 </div>
             )}
         </nav>

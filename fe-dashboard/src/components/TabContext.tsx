@@ -1,16 +1,18 @@
 'use client';
 
-import { createContext, ReactNode, useContext, useState } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 
-interface TabContextType {
-    activeTab: 'generate' | 'pinned';
-    setActiveTab: (tab: 'generate' | 'pinned') => void;
+type TabType = 'generate' | 'pinned';
+
+interface TabContextProps {
+    activeTab: TabType;
+    setActiveTab: (tab: TabType) => void;
 }
 
-const TabContext = createContext<TabContextType | undefined>(undefined);
+const TabContext = createContext<TabContextProps | undefined>(undefined);
 
 export function TabProvider({ children }: { children: ReactNode }) {
-    const [activeTab, setActiveTab] = useState<'generate' | 'pinned'>('generate');
+    const [activeTab, setActiveTab] = useState<TabType>('generate');
 
     return (
         <TabContext.Provider value={{ activeTab, setActiveTab }}>
@@ -21,7 +23,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
 export function useTab() {
     const context = useContext(TabContext);
-    if (!context) {
+    if (context === undefined) {
         throw new Error('useTab must be used within a TabProvider');
     }
     return context;
