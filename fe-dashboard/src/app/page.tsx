@@ -173,7 +173,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col text-white" style={{ height: '87vh' }}>
+    <div className="flex flex-col text-white" style={{ height: '80vh' }}>
       {/* Spacer for fixed navbar */}
       <div className="h-16"></div>
 
@@ -253,7 +253,7 @@ export default function Home() {
                       <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                       <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                     </div>
-                    <span className="text-gray-400">Generating chart...</span>
+                    <span className="text-gray-400">Generating chart</span>
                   </div>
                 </div>
               </div>
@@ -274,7 +274,7 @@ export default function Home() {
                     onChange={(e) => setPrompt(e.target.value)}
                     onKeyDown={handleKeyPress}
                     placeholder="Ask me to create a chart..."
-                    className="flex-1 py-3 pl-4 pr-12 rounded-2xl bg-transparent text-white placeholder-gray-600 focus:outline-none resize-none min-h-[56px] max-h-[120px]"
+                    className="flex-1 py-3 pl-4 pr-12 rounded-2xl bg-transparent text-black placeholder-gray-600 focus:outline-none resize-none min-h-[56px] max-h-[120px]"
                     rows={1}
                   />
                   <button
