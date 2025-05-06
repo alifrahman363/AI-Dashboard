@@ -263,18 +263,18 @@ export default function Home() {
 
           {/* Chat Input */}
           <div
-            className={`fixed bottom-0 left-0 right-0 pb-6 pt-4 bg-gradient-to-t from-gray-950 to-gray-950/90 z-40`}
+            className={`fixed bottom-0 left-0 right-0 pb-6 pt-4 z-40`}
           >
             <div className="max-w-5xl mx-auto px-4 w-full">
               <form onSubmit={handleSubmit} className="relative">
-                <div className="flex items-end bg-gray-800 rounded-2xl border border-gray-700 focus-within:border-blue-500 transition-colors">
+                <div className="flex items-end rounded-2xl border border-gray-700 focus-within:border-blue-500 transition-colors">
                   <textarea
                     ref={inputRef}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     onKeyDown={handleKeyPress}
                     placeholder="Ask me to create a chart..."
-                    className="flex-1 py-3 pl-4 pr-12 rounded-2xl bg-transparent text-white placeholder-gray-400 focus:outline-none resize-none min-h-[56px] max-h-[120px]"
+                    className="flex-1 py-3 pl-4 pr-12 rounded-2xl bg-transparent text-white placeholder-gray-600 focus:outline-none resize-none min-h-[56px] max-h-[120px]"
                     rows={1}
                   />
                   <button
