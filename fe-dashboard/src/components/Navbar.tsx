@@ -31,21 +31,21 @@ export default function Navbar() {
     return (
         <nav
             className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled
-                ? 'bg-gray-900/95 backdrop-blur-md shadow-lg'
+                ? 'bg-gray-200 backdrop-blur-md shadow-lg'
                 : 'bg-transparent'
                 }`}
         >
-            <div className="max-w-7xl mx-auto px-4 bg-gray-900/95 ">
+            <div className="max-w-7xl mx-auto px-4">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10   rounded-xl">
-                            {/* <FiBarChart2 size={22} color="white" /> */}
-                            {/* add logo */}
-                            <img src="images/logo.png" alt="Logo" className="w-8 h-8" />
-                        </div>
-                        {/* <span className="text-lg font-semibold text-white">ChartGPT</span> */}
-                    </div>
+                    {/* <div className="flex items-center gap-3"> */}
+                    {/* <div className="flex items-center justify-center w-10 h-10   rounded-xl"> */}
+                    {/* <FiBarChart2 size={22} color="white" /> */}
+                    {/* add logo */}
+                    <img src="images/logo.png" alt="Logo" className="w-20 h-10" />
+                    {/* </div> */}
+                    {/* <span className="text-lg font-semibold text-white">ChartGPT</span> */}
+                    {/* </div> */}
 
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center gap-2">
@@ -53,7 +53,7 @@ export default function Navbar() {
                             onClick={() => handleTabChange('generate')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg ${activeTab === 'generate'
                                 ? 'bg-blue-600 text-white'
-                                : 'text-gray-300 hover:bg-gray-800'
+                                : 'text-gray-800 hover:bg-gray-300'
                                 } transition-colors duration-200`}
                         >
                             <FiBarChart2 size={18} />
@@ -63,7 +63,7 @@ export default function Navbar() {
                             onClick={() => handleTabChange('pinned')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg ${activeTab === 'pinned'
                                 ? 'bg-blue-600 text-white'
-                                : 'text-gray-300 hover:bg-gray-800'
+                                : 'text-gray-800 hover:bg-gray-300'
                                 } transition-colors duration-200`}
                         >
                             <FiBookmark size={18} />
@@ -72,14 +72,14 @@ export default function Navbar() {
                     </div>
 
                     {/* Right Side Controls - Desktop Only */}
-                    <div className="hidden md:flex items-center gap-2">
+                    {/* <div className="hidden md:flex items-center gap-2">
                         <button className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors">
                             <FiInfo size={18} />
                         </button>
                         <button className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors">
                             <FiSettings size={18} />
                         </button>
-                    </div>
+                    </div> */}
 
                     {/* Mobile Menu Button */}
                     <button

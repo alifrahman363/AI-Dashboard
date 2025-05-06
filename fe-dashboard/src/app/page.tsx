@@ -304,8 +304,8 @@ export default function Home() {
       )}
 
       {activeTab === 'pinned' && (
-        <div className="max-w-7xl mx-auto w-full px-4 pb-8">
-          <h1 className="text-2xl font-semibold text-gray-200 mb-8 mt-6">Your Pinned Charts</h1>
+        <div className="max-w-7xl mx-auto w-full px-4 pb-8 mt-10">
+          {/* <h1 className="text-2xl font-semibold text-gray-200 mb-8 mt-6">Your Pinned Charts</h1> */}
 
           {loading ? (
             <div className="flex justify-center items-center py-12">
