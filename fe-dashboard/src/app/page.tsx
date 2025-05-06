@@ -173,7 +173,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col bg-gray-950 text-white min-h-screen">
+    <div className="flex flex-col text-white" style={{ height: '87vh' }}>
       {/* Spacer for fixed navbar */}
       <div className="h-16"></div>
 

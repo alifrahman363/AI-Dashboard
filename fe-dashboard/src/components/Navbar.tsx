@@ -35,14 +35,16 @@ export default function Navbar() {
                 : 'bg-transparent'
                 }`}
         >
-            <div className="max-w-7xl mx-auto px-4">
+            <div className="max-w-7xl mx-auto px-4 bg-gray-900/95 ">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-xl">
-                            <FiBarChart2 size={22} color="white" />
+                        <div className="flex items-center justify-center w-10 h-10   rounded-xl">
+                            {/* <FiBarChart2 size={22} color="white" /> */}
+                            {/* add logo */}
+                            <img src="images/logo.png" alt="Logo" className="w-8 h-8" />
                         </div>
-                        <span className="text-lg font-semibold text-white">ChartGPT</span>
+                        {/* <span className="text-lg font-semibold text-white">ChartGPT</span> */}
                     </div>
 
                     {/* Desktop Navigation */}
