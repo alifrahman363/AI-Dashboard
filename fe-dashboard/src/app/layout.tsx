@@ -7,26 +7,26 @@ import { TabProvider } from '@/components/TabContext';
 // Load Inter font from Google Fonts
 const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600'],
   variable: '--font-inter',
   display: 'swap',
 });
 
 export const metadata = {
-  title: 'AI Dashboard',
-  description: 'A dashboard for generating and pinning charts using AI.',
+  title: 'AI Chart Dashboard',
+  description: 'A professional dashboard for generating and managing AI-powered charts.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans flex flex-col min-h-screen bg-gray-50`}>
+      <body className={`${inter.variable} bg-background text-foreground flex flex-col min-h-screen font-sans`}>
         <PromptProvider>
           <TabProvider>
-            {/* Top Navbar */}
             <Navbar />
-            {/* Main Content */}
-            <main className="flex-1 p-6">{children}</main>
+            <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-8">
+              {children}
+            </main>
           </TabProvider>
         </PromptProvider>
       </body>

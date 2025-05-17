@@ -12,7 +12,7 @@
 }
 
 body {
-  @apply bg-gray-950 text-white;
+  @apply bg-background text-text;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
@@ -42,38 +42,6 @@ body,
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-.animate-slide-in {
-  animation: slideIn 0.3s ease-in-out;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(-10px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.3s ease-in-out;
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(10px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateX(0);
-    opacity: 1;
   }
 }
 
@@ -120,7 +88,7 @@ body,
 
 /* Modern card styles */
 .card {
-  @apply bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden transition-all duration-200;
+  @apply bg-card-bg rounded-xl border border-gray-700 overflow-hidden transition-all duration-200;
   box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.4);
 }
 
@@ -131,18 +99,18 @@ body,
 
 /* Button styles */
 .btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-medium transition-colors;
+  @apply bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-xl font-medium transition-colors;
 }
 
 .btn-secondary {
-  @apply bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-xl font-medium transition-colors;
+  @apply bg-gray-800 hover:bg-gray-700 text-text-muted px-4 py-2 rounded-xl font-medium transition-colors;
 }
 
 .btn-outline {
-  @apply border border-gray-700 hover:border-gray-500 text-gray-300 px-4 py-2 rounded-xl font-medium transition-colors;
+  @apply border border-gray-700 hover:border-gray-500 text-text-muted px-4 py-2 rounded-xl font-medium transition-colors;
 }
 
 /* Input styles */
 .input-modern {
-  @apply bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-2 text-white placeholder-gray-400 transition-colors;
+  @apply bg-card-bg border border-gray-700 focus:border-primary rounded-xl px-4 py-2 text-text placeholder-text-muted focus:outline-none transition-colors;
 }
