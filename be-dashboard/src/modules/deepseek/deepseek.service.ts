@@ -1,20 +1,78 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { DataSource } from 'typeorm';
-import { firstValueFrom } from 'rxjs';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { createCanvas } from 'canvas';
+import {
+  Chart,
+  ArcElement,
+  BarElement,
+  LineElement,
+  PieController,
+  DoughnutController,
+  BarController,
+  LineController,
+  CategoryScale,
+  LinearScale,
+  Title,
+  Tooltip,
+  Legend,
+  ChartConfiguration,
+} from 'chart.js';
+// Use named import for ChartDataLabels
+const ChartDataLabels = require('chartjs-plugin-datalabels');
+import { jsPDF } from 'jspdf';
+import { firstValueFrom } from 'rxjs';
+import { DataSource, Repository } from 'typeorm';
 import { PinnedChart } from '../pinnedCharts/pinnedChart.entity';
 
-// Define the ChartData interface to match the frontend's expectation
+// Debug: Log all components to check for undefined values
+console.log('Chart.js components:', {
+  ArcElement,
+  BarElement,
+  LineElement,
+  PieController,
+  DoughnutController,
+  BarController,
+  LineController,
+  CategoryScale,
+  LinearScale,
+  Title,
+  Tooltip,
+  Legend,
+  ChartDataLabels,
+});
+
+// Register only the necessary Chart.js components
+try {
+  Chart.register(
+    ArcElement,
+    BarElement,
+    LineElement,
+    PieController,
+    DoughnutController,
+    BarController,
+    LineController,
+    CategoryScale,
+    LinearScale,
+    Title,
+    Tooltip,
+    Legend,
+    ChartDataLabels
+  );
+  console.log('Chart.js registration successful');
+} catch (error) {
+  console.error('Error during Chart.js registration:', error.message);
+  throw new Error(`Chart.js registration failed: ${error.message}`);
+}
+
 interface ChartData {
-  chartType: 'bar' | 'pie' | 'line' | 'doughnut';
+  chartType: 'bar' | 'line' | 'pie' | 'doughnut';
   labels: string[];
   data: number[];
   title: string;
   prompt: string;
   query: string;
-  pinnedChartId?: number; // Optional, used for pinned charts
+  pinnedChartId?: number;
 }
 
 @Injectable()
@@ -112,7 +170,10 @@ export class DeepseekService {
       }
 
       // Validate COUNT for "total" requests
-      if (userRequest.toLowerCase().includes('total') && !userRequest.toLowerCase().includes('total price')) {
+      if (
+        userRequest.toLowerCase().includes('total') &&
+        !userRequest.toLowerCase().includes('total price')
+      ) {
         if (!query.toUpperCase().includes('COUNT')) {
           throw new HttpException(
             'Expected COUNT query for total request (e.g., total products)',
@@ -128,7 +189,10 @@ export class DeepseekService {
       }
 
       // Validate table alias usage
-      if (query.toUpperCase().includes('P.') || query.toUpperCase().includes('FROM P ')) {
+      if (
+        query.toUpperCase().includes('P.') ||
+        query.toUpperCase().includes('FROM P ')
+      ) {
         if (!query.toUpperCase().includes('PRODUCTS P')) {
           throw new HttpException(
             'Query uses alias "p" without referencing the products table (e.g., "products p")',
@@ -138,7 +202,10 @@ export class DeepseekService {
       }
 
       // Validate WHERE clause for conditional requests
-      if (userRequest.toLowerCase().includes('greater than') && !query.toUpperCase().includes('WHERE')) {
+      if (
+        userRequest.toLowerCase().includes('greater than') &&
+        !query.toUpperCase().includes('WHERE')
+      ) {
         throw new HttpException(
           'Expected WHERE clause for conditional request (e.g., price greater than)',
           HttpStatus.BAD_REQUEST,
@@ -176,29 +243,42 @@ export class DeepseekService {
       else if (userRequest.toLowerCase().match(/per month|over time|by date/)) {
         chartType = 'line';
         labels = result.map((row: any) => {
-          const stringKey = Object.keys(row).find(k => k.toLowerCase().includes('date') || typeof row[k] === 'string') || Object.keys(row)[0];
+          const stringKey =
+            Object.keys(row).find(
+              (k) => k.toLowerCase().includes('date') || typeof row[k] === 'string',
+            ) || Object.keys(row)[0];
           return row[stringKey].toString();
         });
         data = result.map((row: any) => {
-          const numericKey = Object.keys(row).find(k => typeof row[k] === 'number') || Object.keys(row)[1] || Object.keys(row)[0];
+          const numericKey =
+            Object.keys(row).find((k) => typeof row[k] === 'number') ||
+            Object.keys(row)[1] ||
+            Object.keys(row)[0];
           return Number(row[numericKey]);
         });
       }
       // Handle single-row, multi-column results
       else if (result.length === 1 && Object.keys(result[0]).length > 1) {
         chartType = 'doughnut';
-        labels = Object.keys(result[0]).filter(k => typeof result[0][k] === 'number');
-        data = labels.map(k => Number(result[0][k]));
+        labels = Object.keys(result[0]).filter(
+          (k) => typeof result[0][k] === 'number',
+        );
+        data = labels.map((k) => Number(result[0][k]));
       }
       // Handle multiple rows (e.g., "get all products")
       else {
         chartType = 'bar';
         labels = result.map((row: any) => {
-          const stringKey = Object.keys(row).find(k => typeof row[k] === 'string') || Object.keys(row)[0];
+          const stringKey =
+            Object.keys(row).find((k) => typeof row[k] === 'string') ||
+            Object.keys(row)[0];
           return row[stringKey].toString();
         });
         data = result.map((row: any) => {
-          const numericKey = Object.keys(row).find(k => typeof row[k] === 'number') || Object.keys(row)[1] || Object.keys(row)[0];
+          const numericKey =
+            Object.keys(row).find((k) => typeof row[k] === 'number') ||
+            Object.keys(row)[1] ||
+            Object.keys(row)[0];
           return Number(row[numericKey]);
         });
       }
@@ -271,29 +351,42 @@ export class DeepseekService {
           else if (chart.prompt.toLowerCase().match(/per month|over time|by date/)) {
             chartType = 'line';
             labels = result.map((row: any) => {
-              const stringKey = Object.keys(row).find(k => k.toLowerCase().includes('date') || typeof row[k] === 'string') || Object.keys(row)[0];
+              const stringKey =
+                Object.keys(row).find(
+                  (k) => k.toLowerCase().includes('date') || typeof row[k] === 'string',
+                ) || Object.keys(row)[0];
               return row[stringKey].toString();
             });
             data = result.map((row: any) => {
-              const numericKey = Object.keys(row).find(k => typeof row[k] === 'number') || Object.keys(row)[1] || Object.keys(row)[0];
+              const numericKey =
+                Object.keys(row).find((k) => typeof row[k] === 'number') ||
+                Object.keys(row)[1] ||
+                Object.keys(row)[0];
               return Number(row[numericKey]);
             });
           }
           // Handle single-row, multi-column results
           else if (result.length === 1 && Object.keys(result[0]).length > 1) {
             chartType = 'doughnut';
-            labels = Object.keys(result[0]).filter(k => typeof result[0][k] === 'number');
-            data = labels.map(k => Number(result[0][k]));
+            labels = Object.keys(result[0]).filter(
+              (k) => typeof result[0][k] === 'number',
+            );
+            data = labels.map((k) => Number(result[0][k]));
           }
           // Handle multiple rows (e.g., "get all products")
           else {
             chartType = 'bar';
             labels = result.map((row: any) => {
-              const stringKey = Object.keys(row).find(k => typeof row[k] === 'string') || Object.keys(row)[0];
+              const stringKey =
+                Object.keys(row).find((k) => typeof row[k] === 'string') ||
+                Object.keys(row)[0];
               return row[stringKey].toString();
             });
             data = result.map((row: any) => {
-              const numericKey = Object.keys(row).find(k => typeof row[k] === 'number') || Object.keys(row)[1] || Object.keys(row)[0];
+              const numericKey =
+                Object.keys(row).find((k) => typeof row[k] === 'number') ||
+                Object.keys(row)[1] ||
+                Object.keys(row)[0];
               return Number(row[numericKey]);
             });
           }
@@ -332,4 +425,129 @@ export class DeepseekService {
       );
     }
   }
+
+  async downloadChart(chartData: ChartData, format: 'png' | 'pdf' = 'png'): Promise<Buffer> {
+    try {
+      const width = 1000;
+      const height = 750;
+      const canvas = createCanvas(width, height);
+      const ctx = canvas.getContext('2d');
+
+      const chartConfig: ChartConfiguration<'bar' | 'line' | 'pie' | 'doughnut'> = {
+        type: chartData.chartType,
+        data: {
+          labels: chartData.labels,
+          datasets: [{
+            label: chartData.title,
+            data: chartData.data,
+            backgroundColor: [
+              'rgba(255, 99, 132, 0.8)',
+              'rgba(54, 162, 235, 0.8)',
+              'rgba(255, 206, 86, 0.8)',
+              'rgba(75, 192, 192, 0.8)',
+              'rgba(153, 102, 255, 0.8)',
+            ],
+            borderColor: [
+              'rgba(255, 99, 132, 1)',
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 206, 86, 1)',
+              'rgba(75, 192, 192, 1)',
+              'rgba(153, 102, 255, 1)',
+            ],
+            borderWidth: 2,
+          }],
+        },
+        options: {
+          responsive: false,
+          layout: {
+            padding: 20,
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: chartData.title,
+              font: {
+                size: 24,
+                weight: 'bold',
+              },
+              color: '#000',
+              padding: 20,
+            },
+            legend: {
+              display: chartData.chartType !== 'pie' && chartData.chartType !== 'doughnut',
+              labels: {
+                font: {
+                  size: 16,
+                },
+                color: '#000',
+              },
+            },
+            // @ts-ignore: Extend Chart.js with datalabels plugin
+            datalabels: {
+              display: true,
+              color: '#000',
+              font: {
+                size: 18,
+                weight: 'bold',
+              },
+              formatter: (value: number, context: any): string => {
+                if (chartData.chartType === 'pie' || chartData.chartType === 'doughnut') {
+                  const total = context.dataset.data.reduce((sum: number, val: number) => sum + val, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${value} (${percentage}%)`;
+                }
+                return value.toString();
+              },
+              anchor: 'center',
+              align: 'center',
+            },
+          },
+          scales: chartData.chartType === 'bar' || chartData.chartType === 'line' ? {
+            x: {
+              ticks: {
+                font: { size: 14 },
+                color: '#000',
+              },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                font: { size: 14 },
+                color: '#000',
+              },
+            },
+          } : undefined,
+        },
+      };
+
+      // Render chart
+      new Chart(canvas as any, chartConfig);
+
+      if (format === 'png') {
+        return canvas.toBuffer('image/png', { compressionLevel: 6 });
+      } else if (format === 'pdf') {
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'px',
+          format: [width, height],
+        });
+        const imgData = canvas.toDataURL('image/png');
+        pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+        return Buffer.from(pdf.output('arraybuffer'));
+      } else {
+        throw new HttpException(
+          'Unsupported format. Use "png" or "pdf".',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    } catch (error) {
+      console.log('Error generating chart:', error.message);
+      throw new HttpException(
+        `Failed to generate chart: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
+
+export default DeepseekService;

@@ -7,6 +7,7 @@ import type { ChartProps } from 'react-chartjs-2';
 import { FiBookmark, FiMaximize2, FiMinimize2, FiInfo, FiX, FiDownload } from 'react-icons/fi';
 import { ChartData } from '../types';
 import { barOptions, doughnutOptions, generateChartData, lineOptions, pieOptions } from '../utils/chartUtils';
+import axios from 'axios';
 
 // Define types for each chart component
 type PieComponent = React.ComponentType<ChartProps<'pie'>>;
@@ -29,6 +30,7 @@ interface ChartCardProps {
 export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps) {
     const [expanded, setExpanded] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
+    const [downloading, setDownloading] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);
 
     const data: ChartJsData<'pie' | 'bar' | 'line' | 'doughnut', number[], string> | null = generateChartData(chartData);
@@ -44,10 +46,45 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
         }
     };
 
-    const handleDownload = () => {
-        // Implementation for chart download (SVG/PNG)
-        alert('Download functionality will be implemented');
+    const handleDownload = async (format: 'png' | 'pdf' = 'png') => {
+        try {
+            setDownloading(true);
+
+            // Make a POST request to the download endpoint
+            const response = await axios.post('http://localhost:3000/deepseek/download-chart',
+                {
+                    ...chartData,
+                    format
+                },
+                {
+                    responseType: 'blob' // Important: set responseType to 'blob'
+                }
+            );
+
+            // Create a blob from the response data
+            const blob = new Blob([response.data], {
+                type: format === 'png' ? 'image/png' : 'application/pdf'
+            });
+
+            // Create a link element and trigger download
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `chart-${Date.now()}.${format}`);
+            document.body.appendChild(link);
+            link.click();
+
+            // Clean up
+            link.parentNode?.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading chart:', error);
+            alert('Failed to download chart. Please try again.');
+        } finally {
+            setDownloading(false);
+        }
     };
+    const [showDownloadOptions, setShowDownloadOptions] = useState(false);
 
     // Close modal when clicking outside
     const handleClickOutside = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -122,13 +159,48 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
                             >
                                 <FiBookmark size={18} />
                             </button>
-                            <button
+                            {/* <button
                                 onClick={handleDownload}
                                 className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
                                 title="Download chart"
                             >
                                 <FiDownload size={18} />
-                            </button>
+                            </button> */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowDownloadOptions(!showDownloadOptions)}
+                                    className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                    title="Download chart"
+                                    disabled={downloading}
+                                >
+                                    <FiDownload size={18} />
+                                    {downloading && (
+                                        <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
+                                    )}
+                                </button>
+                                {showDownloadOptions && (
+                                    <div className="absolute right-0 mt-2 w-32 bg-gray-800 border border-gray-700 rounded-lg shadow-lg overflow-hidden z-10">
+                                        <button
+                                            onClick={() => {
+                                                handleDownload('png');
+                                                setShowDownloadOptions(false);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
+                                        >
+                                            PNG Image
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                handleDownload('pdf');
+                                                setShowDownloadOptions(false);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
+                                        >
+                                            PDF Document
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                             <button
                                 onClick={() => setExpanded(false)}
                                 className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
@@ -174,16 +246,16 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
                     {/* Footer with details */}
                     <div className="p-4 border-t border-gray-700 bg-gray-900/50">
                         <div className="space-y-3">
-                            <div>
+                            {/* <div>
                                 <h4 className="text-sm font-medium text-gray-400">Prompt</h4>
                                 <p className="text-gray-300">{chartData.prompt}</p>
-                            </div>
+                            </div> */}
                             {chartData.query && (
                                 <div>
-                                    <h4 className="text-sm font-medium text-gray-400">SQL Query</h4>
+                                    {/* <h4 className="text-sm font-medium text-gray-400">SQL Query</h4>
                                     <pre className="bg-gray-900 p-3 rounded-lg text-gray-300 text-sm overflow-x-auto">
                                         {chartData.query}
-                                    </pre>
+                                    </pre> */}
                                 </div>
                             )}
                         </div>
@@ -216,6 +288,21 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
                     >
                         <FiBookmark size={16} />
                     </button>
+
+                    <div className="relative">
+                        <button
+                            onClick={() => handleDownload('png')}
+                            className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                            title="Download chart as PNG"
+                            disabled={downloading}
+                        >
+                            <FiDownload size={16} />
+                            {downloading && (
+                                <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
+                            )}
+                        </button>
+                    </div>
+
                     <button
                         onClick={() => setExpanded(true)}
                         className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
@@ -268,10 +355,10 @@ export default function ChartCard({ chartData, onPin, onUnpin }: ChartCardProps)
                         </div>
                         {chartData.query && (
                             <div>
-                                <h4 className="text-xs font-medium text-gray-400">SQL Query</h4>
-                                <pre className="bg-gray-900/70 p-2 rounded text-gray-300 text-xs overflow-x-auto">
+                                {/* <h4 className="text-xs font-medium text-gray-400">SQL Query</h4> */}
+                                {/* <pre className="bg-gray-900/70 p-2 rounded text-gray-300 text-xs overflow-x-auto">
                                     {chartData.query}
-                                </pre>
+                                </pre> */}
                             </div>
                         )}
                     </div>
