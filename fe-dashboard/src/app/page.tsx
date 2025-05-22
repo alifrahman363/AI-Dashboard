@@ -160,13 +160,13 @@ export default function Home() {
                       onClick={() => setPrompt('Create a bar chart for 2023 sales')}
                       className="btn-secondary text-left"
                     >
-                      Bar chart for 2023 sales
+                      Show me all products with their prices.
                     </button>
                     <button
                       onClick={() => setPrompt('Line chart for stock prices 2020-2024')}
                       className="btn-secondary text-left"
                     >
-                      Line chart for stock prices
+                      How many products do I have?
                     </button>
                   </div>
                 </div>
