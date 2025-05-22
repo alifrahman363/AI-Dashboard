@@ -11,9 +11,11 @@ AI Dashboard is a full-stack application that allows users to generate charts fr
 - **Responsive Design**: Built with Tailwind CSS for a responsive and modern UI.
 
 
-![image](https://github.com/user-attachments/assets/6cec44df-2182-4e74-81eb-4bc5e7879d38)
+![image](https://github.com/user-attachments/assets/2a131917-de74-4421-8a21-51fdfd85bc82)
 
-![image](https://github.com/user-attachments/assets/052d3f64-e442-4690-aaab-64bf56843007)
+![image](https://github.com/user-attachments/assets/82d621b1-135c-4f4d-bbca-516714ac1200)
+
+![image](https://github.com/user-attachments/assets/13058ee0-7b49-4dfb-8e57-9a473f0f7e33)
 
 
 ## Tech Stack
