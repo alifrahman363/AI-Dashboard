@@ -151,19 +151,19 @@ export default function Home() {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center max-w-md">
                   <FiBarChart2 size={40} className="mx-auto text-primary mb-4" />
-                  <h2 className="text-2xl font-semibold mb-2 font-inter">Chart Generation</h2>
+                  <h2 className="text-2xl font-semibold mb-2 font-inter">AI Dashboard</h2>
                   <p className="text-text-muted mb-6">
                     Create stunning charts with AI. Enter a prompt to get started.
                   </p>
                   <div className="flex flex-col gap-3">
                     <button
-                      onClick={() => setPrompt('Create a bar chart for 2023 sales')}
+                      onClick={() => setPrompt('Show me all products with their prices.')}
                       className="btn-secondary text-left"
                     >
                       Show me all products with their prices.
                     </button>
                     <button
-                      onClick={() => setPrompt('Line chart for stock prices 2020-2024')}
+                      onClick={() => setPrompt('How many products do I have?')}
                       className="btn-secondary text-left"
                     >
                       How many products do I have?
@@ -198,6 +198,21 @@ export default function Home() {
               <div className="flex justify-start px-4 my-4 animate-fade-in">
                 <div className="bg-card-bg rounded-xl p-3">
                   <div className="flex items-center gap-2">
+                    {/* <div className="flex space-x-1">
+                      <div
+                        className="w-2 h-2 bg-primary rounded-full animate-pulse"
+                        style={{ animationDelay: '0s' }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-primary rounded-full animate-pulse"
+                        style={{ animationDelay: '0.2s' }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-primary rounded-full animate-pulse"
+                        style={{ animationDelay: '0.4s' }}
+                      ></div>
+                    </div> */}
+                    <span className="text-text-muted">Generating</span>
                     <div className="flex space-x-1">
                       <div
                         className="w-2 h-2 bg-primary rounded-full animate-pulse"
@@ -212,7 +227,6 @@ export default function Home() {
                         style={{ animationDelay: '0.4s' }}
                       ></div>
                     </div>
-                    <span className="text-text-muted">Generating...</span>
                   </div>
                 </div>
               </div>
