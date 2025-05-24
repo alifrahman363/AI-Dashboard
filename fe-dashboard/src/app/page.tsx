@@ -1,12 +1,12 @@
 'use client';
 
 import axios from 'axios';
-import { useState, useEffect, useRef } from 'react';
-import { FiBarChart2, FiBookmark, FiSend, FiTrash2, FiUpload } from 'react-icons/fi';
+import { useEffect, useRef, useState } from 'react';
 import { FaFileExcel } from 'react-icons/fa';
+import { FiBarChart2, FiBookmark, FiSend, FiTrash2, FiUpload } from 'react-icons/fi';
 import ChartCard from '../components/ChartCard';
-import { ChartData, ChartDataForExcel, ExcelAnalysisResult } from '../types';
 import { useTab } from '../components/TabContext';
+import { ChartData, ExcelAnalysisResult } from '../types';
 
 interface Message {
   id: string;
