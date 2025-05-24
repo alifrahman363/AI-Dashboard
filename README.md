@@ -15,6 +15,8 @@ AI Dashboard is a full-stack application that allows users to generate charts fr
 
 ![image](https://github.com/user-attachments/assets/82d621b1-135c-4f4d-bbca-516714ac1200)
 
+![ai 3](https://github.com/user-attachments/assets/4467244c-e6d2-4248-91b2-0889933f16b5)
+
 ![image](https://github.com/user-attachments/assets/13058ee0-7b49-4dfb-8e57-9a473f0f7e33)
 
 
