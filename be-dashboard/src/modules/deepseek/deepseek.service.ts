@@ -3,27 +3,31 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createCanvas } from 'canvas';
 import {
-  Chart,
   ArcElement,
+  BarController,
   BarElement,
+  CategoryScale,
+  Chart,
+  ChartConfiguration,
+  DoughnutController,
+  Legend,
+  LinearScale,
+  LineController,
   LineElement,
   PieController,
-  DoughnutController,
-  BarController,
-  LineController,
-  CategoryScale,
-  LinearScale,
   Title,
   Tooltip,
-  Legend,
-  ChartConfiguration,
 } from 'chart.js';
-// Use named import for ChartDataLabels
-const ChartDataLabels = require('chartjs-plugin-datalabels');
+import * as fs from 'fs';
 import { jsPDF } from 'jspdf';
 import { firstValueFrom } from 'rxjs';
 import { DataSource, Repository } from 'typeorm';
+import { promisify } from 'util';
+import * as XLSX from 'xlsx';
 import { PinnedChart } from '../pinnedCharts/pinnedChart.entity';
+// Use named import for ChartDataLabels
+const ChartDataLabels = require('chartjs-plugin-datalabels');
+const unlinkAsync = promisify(fs.unlink);
 
 // Debug: Log all components to check for undefined values
 console.log('Chart.js components:', {
@@ -73,6 +77,20 @@ interface ChartData {
   prompt: string;
   query: string;
   pinnedChartId?: number;
+}
+
+export interface ChartDataForExcel {
+  chartType: 'bar' | 'line' | 'pie' | 'doughnut';
+  labels: string[];
+  data: number[];
+  title: string;
+  prompt: string;
+  query?: string; // Optional for Excel analysis
+  pinnedChartId?: number;
+}
+interface ExcelAnalysisResult {
+  chartData: ChartDataForExcel;
+  summary: string;
 }
 
 @Injectable()
@@ -548,6 +566,104 @@ export class DeepseekService {
       );
     }
   }
-}
 
-export default DeepseekService;
+  async analyzeExcel(file: Express.Multer.File, userRequest: string): Promise<ExcelAnalysisResult> {
+    try {
+      const workbook = XLSX.readFile(file.path);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+      if (!jsonData || jsonData.length === 0) {
+        throw new HttpException('Excel file is empty or invalid', HttpStatus.BAD_REQUEST);
+      }
+
+      const summaryPrompt = `
+      Analyze the following dataset and provide a concise summary (max 50 words) based on the user request: "${userRequest}"
+      Dataset (first 5 rows for context): ${JSON.stringify(jsonData.slice(0, 5))}
+      Focus on key metrics (e.g., totals, averages, trends) relevant to the request. Ensure accuracy and brevity.
+      Return only the summary text, no explanations, reasoning, or contradictory statements.
+    `;
+      const deepseekUrl = 'http://localhost:8000/api/prompt';
+      const summaryResponse = await firstValueFrom(
+        this.httpService.post(deepseekUrl, { prompt: summaryPrompt }),
+      );
+      const summary = summaryResponse.data.response.trim();
+
+      let chartType: 'bar' | 'line' | 'pie' | 'doughnut' = 'bar';
+      let labels: string[] = [];
+      let data: number[] = [];
+      let title = userRequest;
+
+      const numericColumn = Object.keys(jsonData[0]).find(
+        (key) => typeof jsonData[0][key] === 'number' || !isNaN(Number(jsonData[0][key])),
+      );
+      const stringColumn = Object.keys(jsonData[0]).find(
+        (key) => typeof jsonData[0][key] === 'string' && !key.toLowerCase().includes('date'),
+      );
+      const dateColumn = Object.keys(jsonData[0]).find(
+        (key) => key.toLowerCase().includes('date') || !isNaN(Date.parse(String(jsonData[0][key]))),
+      );
+
+      if (userRequest.toLowerCase().includes('total') || userRequest.toLowerCase().includes('count')) {
+        chartType = 'pie';
+        if (!numericColumn) {
+          throw new HttpException('No numeric column found for analysis', HttpStatus.BAD_REQUEST);
+        }
+        const total = jsonData.reduce((sum: number, row: any) => {
+          const value = Number(row[numericColumn]);
+          return sum + (isNaN(value) ? 0 : value);
+        }, 0);
+        labels = [numericColumn];
+        data = [total];
+      } else if (userRequest.toLowerCase().match(/per month|over time|by date/)) {
+        chartType = 'line';
+        if (!dateColumn || !numericColumn) {
+          throw new HttpException('Date or numeric column missing for time-based analysis', HttpStatus.BAD_REQUEST);
+        }
+        labels = jsonData.map((row: any) => String(row[dateColumn]));
+        data = jsonData.map((row: any) => {
+          const value = Number(row[numericColumn]);
+          return isNaN(value) ? 0 : value;
+        });
+      } else {
+        chartType = 'bar';
+        if (!stringColumn || !numericColumn) {
+          throw new HttpException('String or numeric column missing for analysis', HttpStatus.BAD_REQUEST);
+        }
+        labels = jsonData.map((row: any) => String(row[stringColumn]));
+        data = jsonData.map((row: any) => {
+          const value = Number(row[numericColumn]);
+          return isNaN(value) ? 0 : value;
+        });
+      }
+
+      if (labels.length === 0 || data.length === 0 || labels.length !== data.length) {
+        throw new HttpException('Invalid chart data generated from Excel', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      const chartData: ChartDataForExcel = {
+        chartType,
+        labels,
+        data,
+        title,
+        prompt: userRequest,
+      };
+
+      await unlinkAsync(file.path);
+
+      return {
+        chartData,
+        summary,
+      };
+    } catch (error) {
+      if (file.path) {
+        await unlinkAsync(file.path).catch((err) => console.error('Error deleting file:', err));
+      }
+      throw new HttpException(
+        `Failed to analyze Excel file: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+}
