@@ -1,14 +1,57 @@
 'use client';
 
 import axios from 'axios';
-import { useEffect, useRef, useState } from 'react';
-import { FaFileExcel } from 'react-icons/fa';
+import { useState, useEffect, useRef } from 'react';
 import { FiBarChart2, FiBookmark, FiSend, FiTrash2, FiUpload } from 'react-icons/fi';
+import { FaFileExcel } from 'react-icons/fa';
 import ChartCard from '../components/ChartCard';
-import ExcelMessage from '../components/ExcelMessage';
+import { ChartData, ChartDataForExcel, ExcelAnalysisResult } from '../types';
 import { useTab } from '../components/TabContext';
-import { useExcelAnalysis } from '../hooks/useExcelAnalysis';
-import { ChartData, Message } from '../types';
+
+interface Message {
+  id: string;
+  type: 'user' | 'ai' | 'error';
+  content: string | ChartData | ExcelAnalysisResult;
+  timestamp: Date;
+  isExcel?: boolean;
+  fileName?: string;
+}
+
+// Typing animation component
+const TypingText = ({ text, speed = 50, onComplete }: { text: string; speed?: number; onComplete?: () => void }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (currentIndex < text.length) {
+      const timer = setTimeout(() => {
+        setDisplayedText(prev => prev + text[currentIndex]);
+        setCurrentIndex(prev => prev + 1);
+      }, speed);
+      return () => clearTimeout(timer);
+    } else if (onComplete) {
+      onComplete();
+    }
+  }, [currentIndex, text, speed, onComplete]);
+
+  return (
+    <span>
+      {displayedText}
+      {currentIndex < text.length && (
+        <span className="animate-pulse text-primary">|</span>
+      )}
+    </span>
+  );
+};
+
+// Function to clean text by removing <think> tags and their content
+const cleanText = (text: string): string => {
+  // Remove <think>...</think> blocks (including multiline)
+  const cleanedText = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+
+  // Remove any extra whitespace that might be left
+  return cleanedText.trim();
+};
 
 export default function Home() {
   const { activeTab } = useTab();
@@ -18,18 +61,11 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hasFetchedPinnedCharts, setHasFetchedPinnedCharts] = useState<boolean>(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [typingStates, setTypingStates] = useState<{ [key: string]: boolean }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conversationRef = useRef<HTMLDivElement>(null);
-
-  // Excel analysis hook
-  const {
-    selectedFile,
-    handleFileChange,
-    triggerFileInput,
-    submitExcelAnalysis,
-    fileInputRef,
-    clearFile,
-  } = useExcelAnalysis();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -63,23 +99,42 @@ export default function Home() {
     }
   };
 
-  // Handle file change with error handling
-  const handleFileChangeWithError = (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      handleFileChange(e);
+  // Handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('handleFileChange triggered');
+    const file = e.target.files?.[0];
+    if (file && ['.xlsx', '.xls'].includes(file.name.slice(file.name.lastIndexOf('.')).toLowerCase())) {
+      console.log('Valid Excel file selected:', file.name);
+      setSelectedFile(file);
       setError(null);
-    } catch (err: any) {
-      setError(err.message);
+    } else {
+      console.log('Invalid file selected:', file?.name);
+      setSelectedFile(null);
+      setError('Please upload a valid Excel file (.xlsx or .xls)');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  // Handle file input trigger with error handling
-  const triggerFileInputWithError = () => {
-    try {
-      triggerFileInput();
-    } catch (err: any) {
-      setError(err.message);
+  // Trigger file input click
+  const triggerFileInput = () => {
+    console.log('triggerFileInput called');
+    if (fileInputRef.current) {
+      console.log('fileInputRef exists, triggering click');
+      fileInputRef.current.click();
+    } else {
+      console.error('fileInputRef is null');
+      setError('File input not found. Please try again.');
     }
+  };
+
+  // Handle typing completion
+  const handleTypingComplete = (messageId: string) => {
+    setTypingStates(prev => ({
+      ...prev,
+      [messageId]: true
+    }));
   };
 
   // Handle prompt submission (database query or Excel upload)
@@ -87,46 +142,98 @@ export default function Home() {
     if (e) e.preventDefault();
     if (!prompt.trim()) return;
 
-    // Create user message
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      type: 'user',
-      content: prompt,
-      fileName: selectedFile?.name,
-      isExcel: !!selectedFile,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    const currentPrompt = prompt;
-    setPrompt('');
-    setLoading(true);
-    setError(null);
-
     if (selectedFile) {
+      console.log('Submitting Excel upload with prompt:', prompt, 'and file:', selectedFile.name);
       // Handle Excel file upload
-      await submitExcelAnalysis(
-        currentPrompt,
-        (aiMessage) => {
-          setMessages((prev) => [...prev, aiMessage]);
-          setLoading(false);
-        },
-        (errorMessage) => {
-          const aiErrorMessage: Message = {
-            id: `ai-error-${Date.now()}`,
-            type: 'error',
-            content: `Error: ${errorMessage}`,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, aiErrorMessage]);
-          setError(errorMessage);
-          setLoading(false);
-        }
-      );
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        type: 'user',
+        content: prompt,
+        fileName: selectedFile.name,
+        isExcel: true,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
+      setPrompt('');
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      setLoading(true);
+      setError(null);
+
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('prompt', prompt);
+
+        const response = await axios.post('http://localhost:3000/deepseek/analyze-excel', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        const excelResult: ExcelAnalysisResult = response.data;
+
+        // Clean the summary text
+        const cleanedSummary = cleanText(excelResult.summary || '');
+
+        // Normalize ChartDataForExcel to ChartData for ChartCard
+        const normalizedChartData: ChartData = {
+          ...excelResult.chartData,
+          query: excelResult.chartData.query || 'N/A (Excel data)',
+        };
+
+        const aiMessageId = `ai-${Date.now()}`;
+        const aiMessage: Message = {
+          id: aiMessageId,
+          type: 'ai',
+          content: {
+            ...excelResult,
+            chartData: normalizedChartData,
+            summary: cleanedSummary
+          },
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, aiMessage]);
+
+        // Initialize typing state for this message
+        setTypingStates(prev => ({
+          ...prev,
+          [aiMessageId]: false
+        }));
+
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.message || 'Failed to analyze Excel file';
+        const aiErrorMessage: Message = {
+          id: `ai-error-${Date.now()}`,
+          type: 'error',
+          content: `Error: ${errorMessage}`,
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, aiErrorMessage]);
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
     } else {
       // Handle database query
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        type: 'user',
+        content: prompt,
+        isExcel: false,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
+      setPrompt('');
+      setLoading(true);
+      setError(null);
+
       try {
-        const response = await axios.post('http://localhost:3000/deepseek/prompt', { prompt: currentPrompt });
+        const response = await axios.post('http://localhost:3000/deepseek/prompt', { prompt });
         const newChart: ChartData = response.data;
 
         const aiMessage: Message = {
@@ -181,7 +288,11 @@ export default function Home() {
   // Clear conversation
   const clearConversation = () => {
     setMessages([]);
-    clearFile();
+    setSelectedFile(null);
+    setTypingStates({});
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -255,11 +366,30 @@ export default function Home() {
                       ) : typeof message.content === 'string' ? (
                         <p className="animate-fade-in">{message.content}</p>
                       ) : 'chartData' in message.content ? (
-                        <ExcelMessage
-                          content={message.content}
-                          onPin={pinChart}
-                          onUnpin={unpinChart}
-                        />
+                        <>
+                          <div className="mb-3 p-3 bg-gray-800/50 rounded-lg border-l-4 border-primary">
+                            <div className="flex items-start gap-2">
+                              <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                              <div className="text-sm font-medium text-text min-h-[1.25rem]">
+                                <TypingText
+                                  text={(message.content as ExcelAnalysisResult).summary || 'Analysis complete.'}
+                                  speed={30}
+                                  onComplete={() => handleTypingComplete(message.id)}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          {/* Only show chart after typing is complete */}
+                          {typingStates[message.id] && (
+                            <div className="mt-3">
+                              <ChartCard
+                                chartData={(message.content as ExcelAnalysisResult).chartData as ChartData}
+                                onPin={pinChart}
+                                onUnpin={unpinChart}
+                              />
+                            </div>
+                          )}
+                        </>
                       ) : (
                         <ChartCard
                           chartData={message.content as ChartData}
@@ -314,7 +444,7 @@ export default function Home() {
                   />
                   <button
                     type="button"
-                    onClick={triggerFileInputWithError}
+                    onClick={triggerFileInput}
                     className={`p-2 transition-colors ${selectedFile ? 'text-primary' : 'text-text hover:text-primary'}`}
                     title="Upload Excel file"
                   >
@@ -323,7 +453,7 @@ export default function Home() {
                   <input
                     type="file"
                     ref={fileInputRef}
-                    onChange={handleFileChangeWithError}
+                    onChange={handleFileChange}
                     accept=".xlsx,.xls"
                     className="hidden"
                   />

@@ -22,23 +22,7 @@ export interface ChartDataForExcel {
     query?: string;
     pinnedChartId?: number;
 }
-
-// export interface ChartDataForExcel {
-//     query?: string;
-//     chartType: string;
-//     data?: any;
-// }
-
 export interface ExcelAnalysisResult {
     chartData: ChartDataForExcel;
     summary: string;
-}
-
-export interface Message {
-    id: string;
-    type: 'user' | 'ai' | 'error';
-    content: string | ChartData | ExcelAnalysisResult;
-    timestamp: Date;
-    isExcel?: boolean;
-    fileName?: string;
 }
