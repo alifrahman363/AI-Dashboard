@@ -7,6 +7,10 @@ import { FiBarChart2, FiBookmark, FiSend, FiTrash2, FiUpload } from 'react-icons
 import ChartCard from '../components/ChartCard';
 import { useTab } from '../components/TabContext';
 import { ChartData, ExcelAnalysisResult } from '../types';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface Message {
   id: string;
@@ -46,10 +50,7 @@ const TypingText = ({ text, speed = 50, onComplete }: { text: string; speed?: nu
 
 // Function to clean text by removing <think> tags and their content
 const cleanText = (text: string): string => {
-  // Remove <think>...</think> blocks (including multiline)
   const cleanedText = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
-
-  // Remove any extra whitespace that might be left
   return cleanedText.trim();
 };
 
@@ -66,6 +67,9 @@ export default function Home() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conversationRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputAreaRef = useRef<HTMLDivElement>(null); // Ref for input area animation
+  const messageRefs = useRef<(HTMLDivElement | null)[]>([]); // Refs for message animations
+  const chartRefs = useRef<(HTMLDivElement | null)[]>([]); // Refs for pinned chart animations
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -77,12 +81,46 @@ export default function Home() {
     }
   }, [messages, loading]);
 
+  // Animate input area on mount
+  useEffect(() => {
+    if (inputAreaRef.current) {
+      gsap.fromTo(
+        inputAreaRef.current,
+        { y: 50, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }
+      );
+    }
+  }, []);
+
+  // Animate messages when added
+  useEffect(() => {
+    messageRefs.current.forEach((ref, index) => {
+      if (ref && messages[index]) {
+        gsap.fromTo(
+          ref,
+          { opacity: 0, x: messages[index].type === 'user' ? 20 : -20 },
+          {
+            opacity: 1,
+            x: 0,
+            duration: 0.5,
+            ease: 'power2.out',
+            delay: index * 0.1, // Stagger messages slightly
+          }
+        );
+      }
+    });
+  }, [messages]);
+
   // Fetch pinned charts
   useEffect(() => {
     if (activeTab === 'pinned' && !hasFetchedPinnedCharts) {
       fetchPinnedCharts();
       setHasFetchedPinnedCharts(true);
     }
+    return () => {
+      // Clean up ScrollTrigger animations
+      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+    };
   }, [activeTab, hasFetchedPinnedCharts]);
 
   const fetchPinnedCharts = async () => {
@@ -91,6 +129,28 @@ export default function Home() {
     try {
       const response = await axios.get('http://localhost:3000/deepseek/pinned-charts');
       setPinnedCharts(response.data);
+      // Animate pinned charts with ScrollTrigger
+      setTimeout(() => {
+        chartRefs.current.forEach((ref, index) => {
+          if (ref) {
+            gsap.fromTo(
+              ref,
+              { opacity: 0, y: 20 },
+              {
+                opacity: 1,
+                y: 0,
+                duration: 0.6,
+                ease: 'power3.out',
+                scrollTrigger: {
+                  trigger: ref,
+                  start: 'top 80%', // Start animation when the top of the element is 80% from the top of the viewport
+                  toggleActions: 'play none none reverse', // Play on enter, reverse on leave
+                },
+              }
+            );
+          }
+        });
+      }, 100); // Small delay to ensure refs are assigned
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch pinned charts');
       setPinnedCharts([]);
@@ -101,14 +161,11 @@ export default function Home() {
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('handleFileChange triggered');
     const file = e.target.files?.[0];
     if (file && ['.xlsx', '.xls'].includes(file.name.slice(file.name.lastIndexOf('.')).toLowerCase())) {
-      console.log('Valid Excel file selected:', file.name);
       setSelectedFile(file);
       setError(null);
     } else {
-      console.log('Invalid file selected:', file?.name);
       setSelectedFile(null);
       setError('Please upload a valid Excel file (.xlsx or .xls)');
       if (fileInputRef.current) {
@@ -119,12 +176,9 @@ export default function Home() {
 
   // Trigger file input click
   const triggerFileInput = () => {
-    console.log('triggerFileInput called');
     if (fileInputRef.current) {
-      console.log('fileInputRef exists, triggering click');
       fileInputRef.current.click();
     } else {
-      console.error('fileInputRef is null');
       setError('File input not found. Please try again.');
     }
   };
@@ -133,18 +187,16 @@ export default function Home() {
   const handleTypingComplete = (messageId: string) => {
     setTypingStates(prev => ({
       ...prev,
-      [messageId]: true
+      [messageId]: true,
     }));
   };
 
-  // Handle prompt submission (database query or Excel upload)
+  // Handle prompt submission
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!prompt.trim()) return;
 
     if (selectedFile) {
-      console.log('Submitting Excel upload with prompt:', prompt, 'and file:', selectedFile.name);
-      // Handle Excel file upload
       const userMessage: Message = {
         id: `user-${Date.now()}`,
         type: 'user',
@@ -173,11 +225,7 @@ export default function Home() {
         });
 
         const excelResult: ExcelAnalysisResult = response.data;
-
-        // Clean the summary text
         const cleanedSummary = cleanText(excelResult.summary || '');
-
-        // Normalize ChartDataForExcel to ChartData for ChartCard
         const normalizedChartData: ChartData = {
           ...excelResult.chartData,
           query: excelResult.chartData.query || 'N/A (Excel data)',
@@ -190,19 +238,16 @@ export default function Home() {
           content: {
             ...excelResult,
             chartData: normalizedChartData,
-            summary: cleanedSummary
+            summary: cleanedSummary,
           },
           timestamp: new Date(),
         };
 
         setMessages((prev) => [...prev, aiMessage]);
-
-        // Initialize typing state for this message
         setTypingStates(prev => ({
           ...prev,
-          [aiMessageId]: false
+          [aiMessageId]: false,
         }));
-
       } catch (err: any) {
         const errorMessage = err.response?.data?.message || 'Failed to analyze Excel file';
         const aiErrorMessage: Message = {
@@ -218,7 +263,6 @@ export default function Home() {
         setLoading(false);
       }
     } else {
-      // Handle database query
       const userMessage: Message = {
         id: `user-${Date.now()}`,
         type: 'user',
@@ -311,7 +355,9 @@ export default function Home() {
             {messages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center max-w-md">
-                  <FiBarChart2 size={40} className="mx-auto text-primary mb-4" />
+                  <div className="flex justify-center mb-4">
+                    <FiBarChart2 size={40} />
+                  </div>
                   <h2 className="text-2xl font-semibold mb-2 font-inter">AI Dashboard</h2>
                   <p className="text-text-muted mb-6">
                     Create stunning charts with AI. Enter a prompt or upload an Excel file to get started.
@@ -340,9 +386,10 @@ export default function Home() {
               </div>
             ) : (
               <div className="space-y-4 px-4">
-                {messages.map((message) => (
+                {messages.map((message, index) => (
                   <div
                     key={message.id}
+                    ref={el => { messageRefs.current[index] = el; }} // Assign ref for animation
                     className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
@@ -354,7 +401,7 @@ export default function Home() {
                         }`}
                     >
                       {message.type === 'user' || message.type === 'error' ? (
-                        <div className="flex flex-col gap-1 animate-fade-in">
+                        <div className="flex flex-col gap-1">
                           <span>{message.content as string}</span>
                           {message.isExcel && message.fileName && (
                             <div className="flex items-center gap-2 text-sm text-text-muted">
@@ -364,7 +411,7 @@ export default function Home() {
                           )}
                         </div>
                       ) : typeof message.content === 'string' ? (
-                        <p className="animate-fade-in">{message.content}</p>
+                        <p>{message.content}</p>
                       ) : 'chartData' in message.content ? (
                         <>
                           <div className="mb-3 p-3 bg-gray-800/50 rounded-lg border-l-4 border-primary">
@@ -379,9 +426,11 @@ export default function Home() {
                               </div>
                             </div>
                           </div>
-                          {/* Only show chart after typing is complete */}
+                          {/* Chart animation after typing completes */}
                           {typingStates[message.id] && (
-                            <div className="mt-3">
+                            <div
+                              ref={(el) => { messageRefs.current[index + 0.5] = el; }} // Unique ref for chart
+                            >
                               <ChartCard
                                 chartData={(message.content as ExcelAnalysisResult).chartData as ChartData}
                                 onPin={pinChart}
@@ -403,25 +452,33 @@ export default function Home() {
               </div>
             )}
             {loading && (
-              <div className="flex justify-start px-4 my-4 animate-fade-in">
+              <div className="flex justify-start px-4 my-4">
                 <div className="bg-card-bg rounded-xl p-3">
                   <div className="flex items-center gap-2">
                     <span className="text-text-muted">
                       {selectedFile ? 'Analyzing Excel file' : 'Generating chart'}
                     </span>
                     <div className="flex space-x-1">
-                      <div
-                        className="w-2 h-2 bg-primary rounded-full animate-pulse"
-                        style={{ animationDelay: '0s' }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-primary rounded-full animate-pulse"
-                        style={{ animationDelay: '0.2s' }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-primary rounded-full animate-pulse"
-                        style={{ animationDelay: '0.4s' }}
-                      ></div>
+                      {/* GSAP animation for loading dots */}
+                      {[0, 1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="w-2 h-2 bg-primary rounded-full"
+                          ref={(el) => {
+                            if (el) {
+                              gsap.to(el, {
+                                scale: 1.5,
+                                opacity: 0.5,
+                                repeat: -1,
+                                yoyo: true,
+                                duration: 0.4,
+                                delay: i * 0.2,
+                                ease: 'power1.inOut',
+                              });
+                            }
+                          }}
+                        ></div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -431,7 +488,10 @@ export default function Home() {
           </div>
 
           {/* Input Area */}
-          <div className="fixed bottom-0 left-0 right-0 pb-6 px-4 bg-gradient-to-t from-background to-transparent">
+          <div
+            ref={inputAreaRef}
+            className="fixed bottom-0 left-0 right-0 pb-6 px-4 bg-gradient-to-t from-background to-transparent"
+          >
             <div className="max-w-3xl mx-auto flex items-center gap-3">
               <form onSubmit={handleSubmit} className="relative flex-1">
                 <div className="flex items-center rounded-xl bg-card-bg border border-gray-700 shadow-lg focus-within:border-primary transition-colors">
@@ -501,14 +561,20 @@ export default function Home() {
             </div>
           ) : pinnedCharts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-text-muted card">
-              <FiBookmark size={40} className="mb-4 opacity-50" />
+              <div className="mb-4 opacity-50 flex justify-center">
+                <FiBookmark size={40} />
+              </div>
               <h3 className="text-xl font-medium mb-2 font-inter">No Pinned Charts</h3>
               <p>Pin charts from the Generate tab to view them here.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {pinnedCharts.map((chart, index) => (
-                <div key={chart.pinnedChartId || index} className="w-full">
+                <div
+                  key={chart.pinnedChartId || index}
+                  ref={(el) => { chartRefs.current[index] = el; }} // Assign ref for animation
+                  className="w-full gsap-animated"
+                >
                   <ChartCard chartData={chart} onPin={pinChart} onUnpin={unpinChart} />
                 </div>
               ))}
