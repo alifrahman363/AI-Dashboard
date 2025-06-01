@@ -95,7 +95,8 @@ interface ExcelAnalysisResult {
 
 @Injectable()
 export class DeepseekService {
-  private readonly baseUrl = 'http://localhost:8000';
+  // private readonly baseUrl = 'http://localhost:8000';
+  private readonly baseUrl = 'http://10.38.62.7:8000'; // Use the actual DeepSeek API URL
   private readonly httpTimeout = 30000; // 30 seconds timeout
 
   constructor(

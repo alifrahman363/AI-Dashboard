@@ -4,7 +4,7 @@ import { ChartData, ExcelAnalysisResult } from '../../types';
 export class ExcelService {
     private baseUrl: string;
 
-    constructor(baseUrl: string = 'http://localhost:3000') {
+    constructor(baseUrl: string = 'http://10.38.62.7:8000') {
         this.baseUrl = baseUrl;
     }
 
