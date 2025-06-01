@@ -23,6 +23,7 @@ body {
 /* Optimize GSAP animated elements */
 .gsap-animated {
   will-change: transform, opacity;
+  transform-origin: top left;
 }
 
 html,
