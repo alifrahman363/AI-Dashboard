@@ -25,43 +25,22 @@ import { DataSource, Repository } from 'typeorm';
 import { promisify } from 'util';
 import * as XLSX from 'xlsx';
 import { PinnedChart } from '../pinnedCharts/pinnedChart.entity';
-// Use named import for ChartDataLabels
 const ChartDataLabels = require('chartjs-plugin-datalabels');
 const unlinkAsync = promisify(fs.unlink);
 
-// Debug: Log all components to check for undefined values
+// Debug: Log Chart.js components
 console.log('Chart.js components:', {
-  ArcElement,
-  BarElement,
-  LineElement,
-  PieController,
-  DoughnutController,
-  BarController,
-  LineController,
-  CategoryScale,
-  LinearScale,
-  Title,
-  Tooltip,
-  Legend,
-  ChartDataLabels,
+  ArcElement, BarElement, LineElement, PieController, DoughnutController,
+  BarController, LineController, CategoryScale, LinearScale, Title, Tooltip,
+  Legend, ChartDataLabels,
 });
 
-// Register only the necessary Chart.js components
+// Register Chart.js components
 try {
   Chart.register(
-    ArcElement,
-    BarElement,
-    LineElement,
-    PieController,
-    DoughnutController,
-    BarController,
-    LineController,
-    CategoryScale,
-    LinearScale,
-    Title,
-    Tooltip,
-    Legend,
-    ChartDataLabels
+    ArcElement, BarElement, LineElement, PieController, DoughnutController,
+    BarController, LineController, CategoryScale, LinearScale, Title, Tooltip,
+    Legend, ChartDataLabels
   );
   console.log('Chart.js registration successful');
 } catch (error) {
@@ -85,9 +64,10 @@ export interface ChartDataForExcel {
   data: number[];
   title: string;
   prompt: string;
-  query?: string; // Optional for Excel analysis
+  query?: string;
   pinnedChartId?: number;
 }
+
 interface ExcelAnalysisResult {
   chartData: ChartDataForExcel;
   summary: string;
@@ -95,8 +75,7 @@ interface ExcelAnalysisResult {
 
 @Injectable()
 export class DeepseekService {
-  // private readonly baseUrl = 'http://localhost:8000';
-  private readonly baseUrl = 'http://10.38.62.7:8000'; // Use the actual DeepSeek API URL
+  private readonly baseUrl = 'http://10.38.62.7:8000'; // DeepSeek API URL
   private readonly httpTimeout = 30000; // 30 seconds timeout
 
   constructor(
@@ -105,7 +84,6 @@ export class DeepseekService {
     @InjectRepository(PinnedChart)
     private readonly pinnedChartRepository: Repository<PinnedChart>,
   ) {
-    // Configure HTTP service with timeout and retry
     this.httpService.axiosRef.defaults.timeout = this.httpTimeout;
     this.httpService.axiosRef.defaults.headers.post['Content-Type'] = 'application/json';
   }
@@ -147,24 +125,29 @@ export class DeepseekService {
   `;
 
   private readonly aiPromptTemplate = `
-    Using the schema: {schema}
-    Generate a valid MySQL SELECT query for the request: {userRequest}
-    Rules:
-    - ONLY return the query as a single line of text.
-    - NO explanations, reasoning, comments, or extra text.
-    - Always use table aliases in the format 'table_name alias' in the FROM clause (e.g., 'FROM products p', never 'FROM p').
-    - For requests asking for a count (e.g., "total products", "total orders"), use COUNT(*) with the alias 'count' (e.g., 'SELECT COUNT(*) as count FROM products p').
-    - For requests listing items (e.g., "get all products"), select a string column and a numeric column for charting (e.g., 'SELECT p.name, p.price FROM products p').
-    - For conditions (e.g., "greater than", "less than"), use a WHERE clause (e.g., 'WHERE p.price > 50').
-    - Examples:
-      - Request: "total products?" -> Query: "SELECT COUNT(*) as count FROM products p"
-      - Request: "Get all products with a price greater than 50" -> Query: "SELECT p.name, p.price FROM products p WHERE p.price > 50"
-    - Ensure the query is valid MySQL syntax, references actual table names, and uses aliases correctly.
+   Using the schema: {schema}
+  Generate a valid MySQL SELECT query for the request: {userRequest}
+  Rules:
+  - Return ONLY the query as a single line of text, with no explanations or extra text.
+  - Use table aliases in the format 'table_name alias' (e.g., 'FROM products p') and ensure every alias used (e.g., 'p.') is explicitly defined in FROM or JOIN clauses.
+  - Include only necessary tables and joins based on the request; avoid redundant joins (e.g., use 'orders o' for order metrics, not 'products p' unless product data is required).
+  - For time-series requests (e.g., 'per month', 'by date'), group by DATE_FORMAT(column, '%Y-%m') with alias 'month' and select a numeric column (e.g., COUNT(*) as count, SUM(o.total_price) as total).
+  - For product quantity requests (e.g., 'products sold'), use COUNT(op.product_id) from 'order_products op' joined with 'orders o'.
+  - For count requests (e.g., 'total products'), use COUNT(*) with alias 'count' unless time-series is specified.
+  - For single-row aggregations (e.g., 'average price', 'min max'), select multiple numeric columns with descriptive aliases (e.g., AVG(p.price) as avg_price) from the relevant table.
+  - For listing items (e.g., 'get all products'), select one string column and one numeric column (e.g., 'SELECT p.name, p.price FROM products p').
+  - For conditions (e.g., 'greater than', 'less than'), use a WHERE clause (e.g., 'WHERE p.price > 100').
+  - For user-specific requests (e.g., 'users with more than N orders'), use subqueries on 'users u' or 'orders o' (e.g., 'WHERE o.user_id IN (SELECT user_id FROM orders GROUP BY user_id HAVING COUNT(*) > N)').
+  - Ensure valid MySQL syntax, exact table/column names from the schema, and consistent aliases throughout the query.
+  Examples:
+  - Request: 'total products?' -> Query: 'SELECT COUNT(*) as count FROM products p'
+  - Request: 'Show the count of orders per month in 2025' -> Query: 'SELECT DATE_FORMAT(o.created_at, '%Y-%m') as month, COUNT(*) as count FROM orders o WHERE YEAR(o.created_at) = 2025 GROUP BY DATE_FORMAT(o.created_at, '%Y-%m')'
+  - Request: 'Show the total quantity of products sold per month in 2025' -> Query: 'SELECT DATE_FORMAT(o.created_at, '%Y-%m') as month, COUNT(op.product_id) as count FROM orders o JOIN order_products op ON o.id = op.order_id WHERE YEAR(o.created_at) = 2025 GROUP BY DATE_FORMAT(o.created_at, '%Y-%m')'
+  - Request: 'average, min, max price of products costing more than 100' -> Query: 'SELECT AVG(p.price) as avg_price, MIN(p.price) as min_price, MAX(p.price) as max_price FROM products p WHERE p.price > 100'
+  - Request: 'total order value per month in 2025 for users who placed more than 5 orders' -> Query: 'SELECT DATE_FORMAT(o.created_at, '%Y-%m') as month, SUM(o.total_price) as total_value FROM orders o WHERE o.user_id IN (SELECT user_id FROM orders GROUP BY user_id HAVING COUNT(*) > 5) AND YEAR(o.created_at) = 2025 GROUP BY DATE_FORMAT(o.created_at, '%Y-%m')'
+  - Request: 'average order subtotal, discount, and total price for users with at least one order costing more than 500' -> Query: 'SELECT AVG(o.subtotal) as avg_subtotal, AVG(o.discount) as avg_discount, AVG(o.total_price) as avg_total_price FROM orders o WHERE o.user_id IN (SELECT DISTINCT user_id FROM orders WHERE total_price > 500)'
   `;
 
-  /**
-   * Make HTTP request to DeepSeek API with error handling and retries
-   */
   private async makeDeepSeekRequest<T = any>(
     endpoint: string,
     payload: any,
@@ -181,8 +164,8 @@ export class DeepseekService {
       try {
         const requestPayload = {
           ...payload,
-          temperature: options.temperature || 0.7,
-          max_tokens: options.maxTokens || 1000,
+          temperature: options.temperature || 0.5, // Balanced for DeepSeek Coder V2
+          max_tokens: options.maxTokens || 2048,   // Increased for complex queries
           stream: options.stream || false,
         };
 
@@ -213,7 +196,6 @@ export class DeepseekService {
           break;
         }
 
-        // Exponential backoff: wait 1s, 2s, 4s between attempts
         const waitTime = Math.pow(2, attempt - 1) * 1000;
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
@@ -225,13 +207,9 @@ export class DeepseekService {
     );
   }
 
-  /**
-   * Validate and clean SQL query response
-   */
   private validateAndCleanQuery(rawResponse: string, userRequest: string): string {
     const cleanedResponse = rawResponse.trim();
 
-    // Extract the query using more flexible regex
     const queryMatch = cleanedResponse.match(/^\s*SELECT\s+.*$/im);
     if (!queryMatch) {
       throw new HttpException(
@@ -242,7 +220,6 @@ export class DeepseekService {
 
     const query = queryMatch[0].trim();
 
-    // Validate SELECT
     if (!query.toUpperCase().startsWith('SELECT')) {
       throw new HttpException(
         'Response is not a valid SELECT query',
@@ -250,31 +227,29 @@ export class DeepseekService {
       );
     }
 
-    // Enhanced validation for COUNT queries
-    const isCountRequest = userRequest.toLowerCase().includes('total') &&
-      !userRequest.toLowerCase().includes('total price');
+    // Validate time-series requests
+    if (this.isTimeSeriesRequest(userRequest)) {
+      if (!query.toUpperCase().includes('GROUP BY') || !query.toUpperCase().includes('DATE_FORMAT')) {
+        throw new HttpException(
+          'Time-series query must include GROUP BY with DATE_FORMAT',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
 
-    if (isCountRequest) {
+    // Relaxed COUNT validation
+    if (userRequest.toLowerCase().includes('total') && !this.isTimeSeriesRequest(userRequest)) {
       if (!query.toUpperCase().includes('COUNT')) {
         throw new HttpException(
           'Expected COUNT query for total request',
           HttpStatus.BAD_REQUEST,
         );
       }
-      if (!query.toUpperCase().includes('COUNT(*) AS COUNT')) {
-        throw new HttpException(
-          'COUNT query must have alias "count"',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
     }
 
-    // Validate table alias usage
     this.validateTableAliases(query);
 
-    // Validate WHERE clause for conditional requests
-    if (userRequest.toLowerCase().includes('greater than') &&
-      !query.toUpperCase().includes('WHERE')) {
+    if (userRequest.toLowerCase().includes('greater than') && !query.toUpperCase().includes('WHERE')) {
       throw new HttpException(
         'Expected WHERE clause for conditional request',
         HttpStatus.BAD_REQUEST,
@@ -284,22 +259,17 @@ export class DeepseekService {
     return query;
   }
 
-  /**
-   * Validate table aliases in SQL query
-   */
   private validateTableAliases(query: string): void {
     const upperQuery = query.toUpperCase();
-
-    // Check for common alias patterns
     const aliasChecks = [
       { alias: 'P.', table: 'PRODUCTS P' },
       { alias: 'U.', table: 'USERS U' },
       { alias: 'O.', table: 'ORDERS O' },
       { alias: 'OP.', table: 'ORDER_PRODUCTS OP' },
     ];
-
     for (const check of aliasChecks) {
       if (upperQuery.includes(check.alias) && !upperQuery.includes(check.table)) {
+        console.error(`Invalid query with alias error: ${query}`);
         throw new HttpException(
           `Query uses alias without proper table reference: ${check.table}`,
           HttpStatus.BAD_REQUEST,
@@ -308,9 +278,6 @@ export class DeepseekService {
     }
   }
 
-  /**
-   * Enhanced chart data formatting with better type detection
-   */
   private formatChartData(result: any[], userRequest: string, query: string): {
     chartType: 'bar' | 'line' | 'pie' | 'doughnut';
     labels: string[];
@@ -329,24 +296,22 @@ export class DeepseekService {
     let data: number[] = [];
     const title = userRequest;
 
-    // Enhanced chart type detection
-    if (query.toUpperCase().includes('COUNT')) {
-      chartType = 'pie';
-      const key = Object.keys(result[0])[0];
-      labels = [key];
-      data = [Number(result[0][key]) || 0];
-    } else if (this.isTimeSeriesRequest(userRequest)) {
+    if (this.isTimeSeriesRequest(userRequest)) {
       chartType = 'line';
       ({ labels, data } = this.extractTimeSeriesData(result));
     } else if (result.length === 1 && Object.keys(result[0]).length > 1) {
       chartType = 'doughnut';
       ({ labels, data } = this.extractDoughnutData(result[0]));
+    } else if (query.toUpperCase().includes('COUNT') && result.length === 1) {
+      chartType = 'pie';
+      const key = Object.keys(result[0])[0];
+      labels = [key];
+      data = [Number(result[0][key]) || 0];
     } else {
       chartType = 'bar';
       ({ labels, data } = this.extractBarData(result));
     }
 
-    // Enhanced validation
     if (labels.length === 0 || data.length === 0) {
       throw new HttpException(
         'No valid data found for chart generation',
@@ -364,17 +329,11 @@ export class DeepseekService {
     return { chartType, labels, data, title };
   }
 
-  /**
-   * Check if request is time-series related
-   */
   private isTimeSeriesRequest(userRequest: string): boolean {
     const timePatterns = /per month|over time|by date|monthly|daily|yearly|trend/i;
     return timePatterns.test(userRequest);
   }
 
-  /**
-   * Extract time series data from query result
-   */
   private extractTimeSeriesData(result: any[]): { labels: string[]; data: number[] } {
     const labels = result.map((row: any) => {
       const dateKey = Object.keys(row).find(k =>
@@ -397,9 +356,6 @@ export class DeepseekService {
     return { labels, data };
   }
 
-  /**
-   * Extract doughnut chart data from single row
-   */
   private extractDoughnutData(row: any): { labels: string[]; data: number[] } {
     const numericEntries = Object.entries(row).filter(([_, value]) =>
       typeof value === 'number' || !isNaN(Number(value))
@@ -411,9 +367,6 @@ export class DeepseekService {
     return { labels, data };
   }
 
-  /**
-   * Extract bar chart data from multiple rows
-   */
   private extractBarData(result: any[]): { labels: string[]; data: number[] } {
     const labels = result.map((row: any) => {
       const stringKey = Object.keys(row).find(k => typeof row[k] === 'string') ||
@@ -435,26 +388,21 @@ export class DeepseekService {
     try {
       console.log('Processing user request:', userRequest);
 
-      // Generate the query using the chat endpoint for better context handling
       const prompt = this.aiPromptTemplate
         .replace('{schema}', this.schema)
         .replace('{userRequest}', userRequest);
 
-      // Use the new chat endpoint with optimized parameters
       const apiResponse = await this.makeDeepSeekRequest('/api/chat', {
         messages: [{ role: 'user', content: prompt }],
       }, {
-        temperature: 0.3, // Lower temperature for more consistent SQL generation
-        maxTokens: 500,   // Reduced tokens for SQL queries
+        temperature: 0.5,  // Balanced for DeepSeek Coder V2
+        maxTokens: 2048,   // Increased for complex queries
       });
 
       const rawResponse = apiResponse.response;
-
-      // Validate and clean the query
       const query = this.validateAndCleanQuery(rawResponse, userRequest);
       console.log('Generated and validated query:', query);
 
-      // Execute the query with error handling
       let result: any[];
       try {
         result = await this.dataSource.query(query);
@@ -465,7 +413,6 @@ export class DeepseekService {
         );
       }
 
-      // Format for Chart.js with enhanced logic
       const chartData = this.formatChartData(result, userRequest, query);
 
       return {
@@ -486,7 +433,6 @@ export class DeepseekService {
 
   async getPinnedCharts(): Promise<ChartData[]> {
     try {
-      // Fetch all pinned charts with better error handling
       const pinnedCharts = await this.pinnedChartRepository.find({
         where: { isPinned: true },
         order: { createdAt: 'DESC' },
@@ -496,10 +442,8 @@ export class DeepseekService {
         return [];
       }
 
-      // Process charts with concurrent execution and error isolation
       const chartPromises = pinnedCharts.map(async (chart) => {
         try {
-          // Execute the raw SQL query with timeout
           const result = await Promise.race([
             this.dataSource.query(chart.query),
             new Promise((_, reject) =>
@@ -512,7 +456,6 @@ export class DeepseekService {
             return null;
           }
 
-          // Format chart data using the enhanced method
           const chartData = this.formatChartData(result, chart.prompt, chart.query);
 
           return {
@@ -523,11 +466,10 @@ export class DeepseekService {
           } as ChartData;
         } catch (error) {
           console.error(`Error processing pinned chart ${chart.id}:`, error.message);
-          return null; // Return null for failed charts instead of throwing
+          return null;
         }
       });
 
-      // Wait for all charts and filter out failed ones
       const chartResults = await Promise.all(chartPromises);
       return chartResults.filter(chart => chart !== null);
     } catch (error) {
@@ -540,13 +482,22 @@ export class DeepseekService {
 
   async downloadChart(chartData: ChartData, format: 'png' | 'pdf' = 'png'): Promise<Buffer> {
     try {
-      const width = 1200; // Increased resolution
+      const width = 1200;
       const height = 800;
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
 
-      // Enhanced chart configuration
-      const chartConfig: ChartConfiguration<'bar' | 'line' | 'pie' | 'doughnut'> = {
+      // Extend Chart.js plugin options to include datalabels for TypeScript
+      type ChartJsWithDatalabelsOptions = ChartConfiguration<'bar' | 'line' | 'pie' | 'doughnut'> & {
+        options: {
+          plugins: {
+            datalabels?: any;
+            [key: string]: any;
+          };
+        };
+      };
+
+      const chartConfig: ChartJsWithDatalabelsOptions = {
         type: chartData.chartType,
         data: {
           labels: chartData.labels,
@@ -602,7 +553,6 @@ export class DeepseekService {
                 padding: 15,
               },
             },
-            // @ts-ignore: Extend Chart.js with datalabels plugin
             datalabels: {
               display: true,
               color: '#000',
@@ -641,14 +591,12 @@ export class DeepseekService {
         },
       };
 
-      // Render chart with error handling
       try {
         new Chart(canvas as any, chartConfig);
       } catch (chartError) {
         throw new Error(`Chart rendering failed: ${chartError.message}`);
       }
 
-      // Generate output based on format
       if (format === 'png') {
         return canvas.toBuffer('image/png', { compressionLevel: 6 });
       } else if (format === 'pdf') {
@@ -681,7 +629,6 @@ export class DeepseekService {
     try {
       filePath = file.path;
 
-      // Enhanced Excel parsing with better error handling
       let workbook: XLSX.WorkBook;
       try {
         workbook = XLSX.readFile(filePath);
@@ -706,8 +653,7 @@ export class DeepseekService {
         throw new HttpException('Excel file is empty or invalid', HttpStatus.BAD_REQUEST);
       }
 
-      // Enhanced summary generation with better context
-      const sampleData = jsonData.slice(0, 10); // Use more samples for better context
+      const sampleData = jsonData.slice(0, 10);
       const dataKeys = Object.keys(jsonData[0]);
       const summaryPrompt = `
         Analyze this Excel dataset and provide a concise summary (max 50 words) for: "${userRequest}"
@@ -721,20 +667,16 @@ export class DeepseekService {
         Return only the summary text without explanations.
       `;
 
-      // Use optimized API call for summary
       const summaryResponse = await this.makeDeepSeekRequest('/api/chat', {
         messages: [{ role: 'user', content: summaryPrompt }],
       }, {
         temperature: 0.5,
-        maxTokens: 100,
+        maxTokens: 256,  // Increased for detailed summaries
       });
 
       const summary = summaryResponse.response.trim();
-
-      // Enhanced chart data extraction
       const chartData = this.extractExcelChartData(jsonData, userRequest);
 
-      // Clean up file
       await unlinkAsync(filePath);
       filePath = null;
 
@@ -743,7 +685,6 @@ export class DeepseekService {
         summary,
       };
     } catch (error) {
-      // Ensure file cleanup on error
       if (filePath) {
         await unlinkAsync(filePath).catch((err) =>
           console.error('Error deleting file:', err)
@@ -761,14 +702,10 @@ export class DeepseekService {
     }
   }
 
-  /**
-   * Enhanced Excel chart data extraction with better column detection
-   */
   private extractExcelChartData(jsonData: any[], userRequest: string): ChartDataForExcel {
     const firstRow = jsonData[0];
     const keys = Object.keys(firstRow);
 
-    // Enhanced column detection
     const numericColumns = keys.filter(key =>
       jsonData.some(row => typeof row[key] === 'number' || !isNaN(Number(row[key])))
     );
@@ -788,7 +725,6 @@ export class DeepseekService {
     let data: number[] = [];
     const title = userRequest;
 
-    // Enhanced chart type determination
     if (userRequest.toLowerCase().match(/total|count|sum/)) {
       chartType = 'pie';
       if (numericColumns.length === 0) {
@@ -829,7 +765,6 @@ export class DeepseekService {
       });
     }
 
-    // Enhanced validation
     if (labels.length === 0 || data.length === 0) {
       throw new HttpException('No valid data extracted from Excel', HttpStatus.INTERNAL_SERVER_ERROR);
     }
