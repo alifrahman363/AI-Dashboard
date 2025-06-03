@@ -37,11 +37,9 @@ kill_port() {
     return 1
 }
 
-# Function to kill all required ports
-kill_all_ports() {
-    echo "Killing all required ports..."
-    kill_port 11434 "Ollama"
-    kill_port 8000 "Flask API"
+# Function to kill required ports (only backend and frontend)
+kill_required_ports() {
+    echo "Killing required ports..."
     kill_port 3000 "NestJS Backend"
     kill_port 3002 "Next.js Frontend"
 }
@@ -61,8 +59,28 @@ stop_processes() {
         echo "No PID file found. No processes to stop."
     fi
 
-    # Kill all required ports after stopping processes
-    kill_all_ports
+    # Kill required ports after stopping processes
+    kill_required_ports
+}
+
+# Function to wait for backend to be ready
+wait_for_backend() {
+    local max_attempts=30
+    local attempt=1
+    
+    echo "Waiting for backend to be ready..."
+    while [ $attempt -le $max_attempts ]; do
+        if curl -s http://localhost:3000 > /dev/null 2>&1 || curl -s http://localhost:3000/health > /dev/null 2>&1; then
+            echo "Backend is ready!"
+            return 0
+        fi
+        echo "Waiting for backend... (attempt $attempt/$max_attempts)"
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+    
+    echo "Warning: Backend may not be fully ready, but continuing with frontend startup..."
+    return 1
 }
 
 # Trap SIGINT (Ctrl+C) to ensure cleanup
@@ -79,26 +97,7 @@ stop_processes
 
 # Kill processes using the required ports with retry mechanism
 echo "Killing processes using required ports before starting services..."
-kill_all_ports
-
-# Start Ollama Server
-echo "Starting Ollama server..."
-export OLLAMA_NUM_PARALLEL=1
-ollama serve &
-OLLAMA_PID=$!
-echo $OLLAMA_PID >> $PID_FILE
-sleep 5
-
-# Start Flask API (deepseek-api)
-echo "Starting Flask API..."
-# /home/ailab/deepseek-coder-api 
-cd /home/alif/deepseek-api || { echo "Flask API directory (/home/alif/deepseek-api) not found. Please check the directory path."; exit 1; }
-source venv/bin/activate
-python3 app.py &
-FLASK_PID=$!
-echo $FLASK_PID >> $PID_FILE
-cd - > /dev/null
-sleep 5
+kill_required_ports
 
 # Start Backend (be-dashboard)
 echo "Starting NestJS Backend..."
@@ -107,7 +106,9 @@ npm run start &
 BACKEND_PID=$!
 echo $BACKEND_PID >> ../$PID_FILE
 cd ..
-sleep 5  # Brief delay to ensure backend starts before frontend
+
+# Wait for backend to be fully ready
+wait_for_backend
 
 # Start Frontend (fe-dashboard)
 echo "Starting Next.js Frontend..."
@@ -118,5 +119,7 @@ echo $FRONTEND_PID >> ../$PID_FILE
 cd ..
 
 echo "All services started. PIDs saved in $PID_FILE"
+echo "Backend running on: http://localhost:3000"
+echo "Frontend running on: http://localhost:3002"
 echo "To stop all services, run: ./run.sh stop"
 echo "Access the application at: http://localhost:3002"
